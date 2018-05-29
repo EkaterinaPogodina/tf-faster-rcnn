@@ -14,3 +14,4 @@ TRAIN:
 TEST:
   HAS_RPN: True
 POOLING_MODE: crop
+#roi_pooling
