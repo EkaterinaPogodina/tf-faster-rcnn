@@ -19,21 +19,29 @@ case ${DATASET} in
     TRAIN_IMDB="voc_2007_trainval"
     TEST_IMDB="voc_2007_test"
     ITERS=70000
-    ANCHORS="[8,16,32]"
+    ANCHORS="[16,32,64]"
     RATIOS="[0.5,1,2]"
     ;;
   pascal_voc_0712)
     TRAIN_IMDB="voc_2007_trainval+voc_2012_trainval"
     TEST_IMDB="voc_2007_test"
     ITERS=110000
-    ANCHORS="[8,16,32]"
+    ANCHORS="[16,32,64]"
     RATIOS="[0.5,1,2]"
     ;;
   coco)
     TRAIN_IMDB="coco_2014_train+coco_2014_valminusminival"
     TEST_IMDB="coco_2014_minival"
     ITERS=490000
-    ANCHORS="[4,8,16,32]"
+    ANCHORS="[4,8,16]"
+    RATIOS="[0.5,1,2]"
+    ;;
+
+  stanford)
+    TRAIN_IMDB="voc_2007_trainval"
+    TEST_IMDB="stanford_val"
+    ITERS=70000
+    ANCHORS="[4,8,16]"
     RATIOS="[0.5,1,2]"
     ;;
   *)
