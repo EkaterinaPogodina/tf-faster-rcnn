@@ -278,6 +278,7 @@ class SolverWrapper(object):
       blobs = self.data_layer.forward()
 
       now = time.time()
+      print('Hello!')
       if iter == 1 or now - last_summary_time > cfg.TRAIN.SUMMARY_INTERVAL:
         # Compute the graph with summary
         rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, summary = \
@@ -295,7 +296,7 @@ class SolverWrapper(object):
       timer.toc()
 
       # Display training information
-      if iter % (cfg.TRAIN.DISPLAY) == 0:
+      if iter % 5 == 0:
         print('iter: %d / %d, total loss: %.6f\n >>> rpn_loss_cls: %.6f\n '
               '>>> rpn_loss_box: %.6f\n >>> loss_cls: %.6f\n >>> loss_box: %.6f\n >>> lr: %f' % \
               (iter, max_iters, total_loss, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
@@ -342,7 +343,9 @@ def filter_roidb(roidb):
     # Valid images have:
     #   (1) At least one foreground RoI OR
     #   (2) At least one background RoI
-    overlaps = entry['max_overlaps']
+    overlaps = entry.get('max_overlaps', None)
+    if overlaps is None:
+      return False
     # find boxes with sufficient overlap
     fg_inds = np.where(overlaps >= cfg.TRAIN.FG_THRESH)[0]
     # Select background RoIs as those within [BG_THRESH_LO, BG_THRESH_HI)
