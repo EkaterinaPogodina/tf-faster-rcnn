@@ -6,3 +6,6 @@ wget
 unzip STANFORDdevkit.zip
 unzip imagenet_weights.zip
 cd ..
+make
+make clean
+cd ..
