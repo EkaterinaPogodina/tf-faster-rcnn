@@ -104,6 +104,7 @@ def voc_eval(detpath,
     os.mkdir(cachedir)
   cachefile = os.path.join(cachedir, '%s_annots.pkl' % imagesetfile)
   # read list of images
+  print("IMAGESETFILE:", imagesetfile)
   with open(imagesetfile, 'r') as f:
     lines = f.readlines()
   imagenames = [x.strip() for x in lines]
@@ -132,7 +133,7 @@ def voc_eval(detpath,
   class_recs = {}
   npos = 0
   for imagename in imagenames:
-    R = [obj for obj in recs[imagename] if obj['name'] == classname]
+    R = [obj for obj in recs[imagename] if obj['name'].lower() == classname]
     bbox = np.array([x['bbox'] for x in R])
     if use_diff:
       difficult = np.array([False for x in R]).astype(np.bool)
@@ -183,6 +184,7 @@ def voc_eval(detpath,
         ih = np.maximum(iymax - iymin + 1., 0.)
         inters = iw * ih
 
+        print(bb[0], bb[1], bb[2], bb[3])
         # union
         uni = ((bb[2] - bb[0] + 1.) * (bb[3] - bb[1] + 1.) +
                (BBGT[:, 2] - BBGT[:, 0] + 1.) *

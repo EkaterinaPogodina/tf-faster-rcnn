@@ -38,9 +38,9 @@ case ${DATASET} in
     ;;
 
   stanford)
-    TRAIN_IMDB="voc_2007_trainval"
+    TRAIN_IMDB="stanford_train"
     TEST_IMDB="stanford_val"
-    ITERS=70000
+    ITERS=60000
     ANCHORS="[4,8,16]"
     RATIOS="[0.5,1,2]"
     ;;

@@ -97,11 +97,14 @@ class Network(object):
     return rois, rpn_scores
 
   def _proposal_layer(self, rpn_cls_prob, rpn_bbox_pred, name):
+    #print(session.run(rpn_bbox_pred))
     with tf.variable_scope(name) as scope:
       rois, rpn_scores = tf.py_func(proposal_layer,
                                     [rpn_cls_prob, rpn_bbox_pred, self._im_info, self._mode,
                                      self._feat_stride, self._anchors, self._num_anchors],
                                     [tf.float32, tf.float32], name="proposal")
+      print(rois)
+      print(rpn_bbox_pred)
       rois.set_shape([None, 5])
       rpn_scores.set_shape([None, 1])
 
@@ -475,7 +478,8 @@ class Network(object):
                                                                                  self._losses['total_loss'],
                                                                                  self._summary_op,
                                                                                  train_op],
-                                                                                feed_dict=feed_dict)
+                                                                                 feed_dict=feed_dict)
+    #print(sess.run(blobs['data']))
     return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, summary
 
   def train_step_no_return(self, sess, blobs, train_op):
