@@ -153,7 +153,9 @@ def voc_eval(detpath,
   image_ids = [x[0] for x in splitlines]
   confidence = np.array([float(x[1]) for x in splitlines])
   BB = np.array([[float(z) for z in x[2:]] for x in splitlines])
-
+  for x in splitlines:
+    print("I don't know ", x[2:])
+ 
   nd = len(image_ids)
   tp = np.zeros(nd)
   fp = np.zeros(nd)
