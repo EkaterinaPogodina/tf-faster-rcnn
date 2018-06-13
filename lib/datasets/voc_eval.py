@@ -182,6 +182,7 @@ def voc_eval(detpath,
         iw = np.maximum(ixmax - ixmin + 1., 0.)
         ih = np.maximum(iymax - iymin + 1., 0.)
         inters = iw * ih
+        print("!!!", d, np.max(inters))
 
         # union
         uni = ((bb[2] - bb[0] + 1.) * (bb[3] - bb[1] + 1.) +
