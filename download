@@ -1,11 +1,19 @@
 #!/bin/bash
 
-cd data
-wget https://drive.google.com/file/d/1FShSQ3chDF8A6RQNejQO3sqfOcGD8eJJ/view?usp=sharing
-wget 
-unzip STANFORDdevkit.zip
-unzip imagenet_weights.zip
-cd ..
+mkdir -p data/imagenet_weights
+cd data/imagenet_weights
+wget -v http://download.tensorflow.org/models/resnet_v1_101_2016_08_28.tar.gz
+tar -xzvf resnet_v1_101_2016_08_28.tar.gz
+mv resnet_v1_101.ckpt res101.ckpt
+cd ../..
+
+cd lib
 make
 make clean
 cd ..
+
+cd data
+git clone https://github.com/pdollar/coco.git
+cd coco/PythonAPI
+make
+cd ../../..
