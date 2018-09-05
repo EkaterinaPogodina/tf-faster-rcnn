@@ -148,7 +148,20 @@ def calculate_share(num_training_images, num_val_images, num_testing_images):
                 elif split_ratio[2] == 1:
                     test_videos += 1
 
-    return (num_training_images/train_videos, num_val_images/val_videos, num_testing_images/test_videos)
+    training_size = 0
+    val_size = 0
+    testing_size = 0
+
+    if train_videos != 0:
+        training_size = num_training_images / train_videos
+
+    if val_videos != 0:
+        val_size = num_val_images / val_videos
+
+    if test_videos != 0:
+        testing_size = num_testing_images / test_videos
+
+    return (training_size, val_size, testing_size)
 
 
 def split_dataset_uniformly(number_of_frames, split_ratio, share, file_name_prefix):
@@ -174,7 +187,7 @@ def split_dataset_uniformly(number_of_frames, split_ratio, share, file_name_pref
             write_to_file(os.path.join(destination_path, 'ImageSets', 'Main', 'test.txt'), file_name_prefix + str(index))
 
 
-def split_and_annotate(num_training_images=None, num_val_images=None):
+def split_and_annotate(num_training_images=None, num_val_images=None, num_testing_images=None):
     assert_path(dataset_path, ''.join(e for e in dataset_path if e.isalnum()) + ' folder should be found in the cwd of this script.')
     init_directories()
     if num_training_images is not None and num_val_images is not None and num_testing_images is not None:
@@ -242,84 +255,19 @@ def split_and_annotate(num_training_images=None, num_val_images=None):
 if __name__ == '__main__':
 
     # Uniform Sub Sampling : Split should contain only 0 / 1
-    videos_to_be_processed = {'bookstore': {0: (1, 0, 0),
+    videos_to_be_processed = {'deathCircle': {0: (1, 0, 0),
                                             1: (1, 0, 0),
                                             2: (1, 0, 0),
                                             3: (1, 0, 0),
-                                            4: (1, 0, 0),
-                                            5: (0, 1, 0),
-                                            6: (0, 0, 1)},
-
-                              'coupa': {0: (1, 0, 0),
-                                        1: (1, 0, 0),
-                                        2: (1, 0, 0),
-                                        3: (0, 1, 0)},
-
-                              'deathCircle': {0: (1, 0, 0),
-                                            1: (1, 0, 0),
-                                            2: (1, 0, 0),
-                                            3: (1, 0, 0),
-                                            4: (0, 1, 0)},
-
-                              'gates': {0: (1, 0, 0),
-                                        1: (1, 0, 0),
-                                        2: (1, 0, 0),
-                                        3: (1, 0, 0),
-                                        4: (1, 0, 0),
-                                        5: (1, 0, 0),
-                                        6: (1, 0, 0),
-                                        7: (1, 0, 0),
-                                        8: (0, 1, 0)},
-
-                              'hyang': {0: (1, 0, 0),
-                                        1: (1, 0, 0),
-                                        2: (1, 0, 0),
-                                        3: (1, 0, 0),
-                                        4: (1, 0, 0),
-                                        5: (1, 0, 0),
-                                        6: (1, 0, 0),
-                                        7: (1, 0, 0),
-                                        8: (1, 0, 0),
-                                        9: (1, 0, 0),
-                                        10: (1, 0, 0),
-                                        11: (1, 0, 0),
-                                        12: (1, 0, 0),
-                                        13: (1, 0, 0),
-                                        14: (0, 1, 0)},
-
-                              'little': {0: (1, 0, 0),
-                                        1: (1, 0, 0),
-                                        2: (1, 0, 0),
-                                        3: (0, 1, 0)},
-
-                              'nexus': {0: (1, 0, 0),
-                                        1: (1, 0, 0),
-                                        2: (1, 0, 0),
-                                        3: (1, 0, 0),
-                                        4: (1, 0, 0),
-                                        5: (1, 0, 0),
-                                        6: (1, 0, 0),
-                                        7: (1, 0, 0),
-                                        8: (1, 0, 0),
-                                        9: (1, 0, 0),
-                                        10: (1, 0, 0),
-                                        11: (0, 1, 0)
-                                    },
-
-                              'quad': {
-                                  0: (1, 0, 0),
-                                  1: (1, 0, 0),
-                                  2: (1, 0, 0),
-                                  3: (0, 1, 0)
-                                }
+                                            4: (0, 1, 1)}
                               }
 
     num_training_images = 100000
     num_val_images = 10000
     num_testing_images = 0
 
-    dataset_path = '../Downloads/stanford_campus_dataset'
+    dataset_path = '../../../Downloads/stanford_campus_dataset-2'
     destination_folder_name = 'STANFORDdevkit'
     destination_path = os.path.join(dataset_path, destination_folder_name)
 
-    split_and_annotate(num_training_images, num_val_images)
+    split_and_annotate(num_training_images, num_val_images, num_testing_images)
