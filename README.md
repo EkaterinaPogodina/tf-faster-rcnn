@@ -71,5 +71,5 @@ python annotate.py
 
 2. run
 ```Shell
-./experiments/scripts/train_faster_rcnn.sh 0 stanford res101
+./experiments/scripts/train_faster_rcnn.sh 0 res101
 ```
