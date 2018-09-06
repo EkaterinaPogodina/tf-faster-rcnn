@@ -18,9 +18,7 @@ import numpy as np
 import sys
 
 import tensorflow as tf
-from nets.vgg16 import vgg16
 from nets.resnet_v1 import resnetv1
-from nets.mobilenet_v1 import mobilenetv1
 
 def parse_args():
   """
@@ -35,10 +33,10 @@ def parse_args():
                       type=str)
   parser.add_argument('--imdb', dest='imdb_name',
                       help='dataset to train on',
-                      default='voc_2007_trainval', type=str)
+                      default='stanford_trainval', type=str)
   parser.add_argument('--imdbval', dest='imdbval_name',
                       help='dataset to validate on',
-                      default='voc_2007_test', type=str)
+                      default='stanford_test', type=str)
   parser.add_argument('--iters', dest='max_iters',
                       help='number of iterations to train',
                       default=70000, type=int)
@@ -46,8 +44,8 @@ def parse_args():
                       help='tag of the model',
                       default=None, type=str)
   parser.add_argument('--net', dest='net',
-                      help='vgg16, res50, res101, res152, mobile',
-                      default='res50', type=str)
+                      help='res50, res101, res152',
+                      default='res101', type=str)
   parser.add_argument('--set', dest='set_cfgs',
                       help='set config keys', default=None,
                       nargs=argparse.REMAINDER)
@@ -121,16 +119,12 @@ if __name__ == '__main__':
   cfg.TRAIN.USE_FLIPPED = orgflip
 
   # load network
-  if args.net == 'vgg16':
-    net = vgg16()
-  elif args.net == 'res50':
+  if args.net == 'res50':
     net = resnetv1(num_layers=50)
   elif args.net == 'res101':
     net = resnetv1(num_layers=101)
   elif args.net == 'res152':
     net = resnetv1(num_layers=152)
-  elif args.net == 'mobile':
-    net = mobilenetv1()
   else:
     raise NotImplementedError
     
