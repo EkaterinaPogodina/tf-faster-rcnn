@@ -20,7 +20,8 @@
   | Tesla K80 (AWS p2.xlarge) | sm_37 |
 
   **Note**: You are welcome to contribute the settings on your end if you have made the code work properly on other GPUs. Also even if you are only using CPU tensorflow, GPU based code (for NMS) will be used by default, so please set **USE_GPU_NMS False** to get the correct output.
-
+  
+3'. You can follow steps bellow or just run ./download (bash file) (remember to make chmod u+x)
 
 3. Build the Cython modules
   ```Shell
