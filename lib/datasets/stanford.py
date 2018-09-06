@@ -51,7 +51,7 @@ class stanford(imdb):
                    'rpn_file': None}
 
     assert os.path.exists(self._devkit_path), \
-      'VOCdevkit path does not exist: {}'.format(self._devkit_path)
+      'STANFORDdevkit path does not exist: {}'.format(self._devkit_path)
     assert os.path.exists(self._data_path), \
       'Path does not exist: {}'.format(self._data_path)
 
@@ -183,7 +183,6 @@ class stanford(imdb):
     return comp_id
 
   def _get_voc_results_file_template(self):
-    # VOCdevkit/results/VOC2007/Main/<comp_id>_det_test_aeroplane.txt
     filename = self._get_comp_id() + '_det_' + self._image_set + '_{:s}.txt'
     path = os.path.join(
       self._devkit_path,
@@ -254,20 +253,6 @@ class stanford(imdb):
     print('-- Thanks, The Management')
     print('--------------------------------------------------------------')
 
-  def _do_matlab_eval(self, output_dir='output'):
-    print('-----------------------------------------------------')
-    print('Computing results with the official MATLAB eval code.')
-    print('-----------------------------------------------------')
-    path = os.path.join(cfg.ROOT_DIR, 'lib', 'datasets',
-                        'VOCdevkit-matlab-wrapper')
-    cmd = 'cd {} && '.format(path)
-    cmd += '{:s} -nodisplay -nodesktop '.format(cfg.MATLAB)
-    cmd += '-r "dbstop if error; '
-    cmd += 'voc_eval(\'{:s}\',\'{:s}\',\'{:s}\',\'{:s}\'); quit;"' \
-      .format(self._devkit_path, self._get_comp_id(),
-              self._image_set, output_dir)
-    print(('Running:\n{}'.format(cmd)))
-    status = subprocess.call(cmd, shell=True)
 
   def evaluate_detections(self, all_boxes, output_dir):
     self._write_voc_results_file(all_boxes)
@@ -288,13 +273,3 @@ class stanford(imdb):
     else:
       self.config['use_salt'] = True
       self.config['cleanup'] = True
-
-
-if __name__ == '__main__':
-  from datasets.pascal_voc import pascal_voc
-
-  d = pascal_voc('trainval', '2007')
-  res = d.roidb
-  from IPython import embed;
-
-  embed()

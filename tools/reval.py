@@ -30,7 +30,7 @@ def parse_args():
                       type=str)
   parser.add_argument('--imdb', dest='imdb_name',
                       help='dataset to re-evaluate',
-                      default='voc_2007_test', type=str)
+                      default='stanford_test', type=str)
   parser.add_argument('--matlab', dest='matlab_eval',
                       help='use matlab for evaluation',
                       action='store_true')

@@ -16,9 +16,7 @@ import pprint
 import time, os, sys
 
 import tensorflow as tf
-from nets.vgg16 import vgg16
 from nets.resnet_v1 import resnetv1
-from nets.mobilenet_v1 import mobilenetv1
 
 def parse_args():
   """
@@ -32,7 +30,7 @@ def parse_args():
             default=None, type=str)
   parser.add_argument('--imdb', dest='imdb_name',
             help='dataset to test',
-            default='voc_2007_test', type=str)
+            default='stanford_test', type=str)
   parser.add_argument('--comp', dest='comp_mode', help='competition mode',
             action='store_true')
   parser.add_argument('--num_dets', dest='max_per_image',
@@ -42,8 +40,8 @@ def parse_args():
                         help='tag of the model',
                         default='', type=str)
   parser.add_argument('--net', dest='net',
-                      help='vgg16, res50, res101, res152, mobile',
-                      default='res50', type=str)
+                      help='res50, res101, res152',
+                      default='res101', type=str)
   parser.add_argument('--set', dest='set_cfgs',
                         help='set config keys', default=None,
                         nargs=argparse.REMAINDER)
@@ -89,16 +87,12 @@ if __name__ == '__main__':
   # init session
   sess = tf.Session(config=tfconfig)
   # load network
-  if args.net == 'vgg16':
-    net = vgg16()
-  elif args.net == 'res50':
+  if args.net == 'res50':
     net = resnetv1(num_layers=50)
   elif args.net == 'res101':
     net = resnetv1(num_layers=101)
   elif args.net == 'res152':
     net = resnetv1(num_layers=152)
-  elif args.net == 'mobile':
-    net = mobilenetv1()
   else:
     raise NotImplementedError
 
