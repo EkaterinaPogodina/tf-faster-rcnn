@@ -6,8 +6,7 @@ set -e
 export PYTHONUNBUFFERED="True"
 
 GPU_ID=$1
-DATASET=$2
-NET=$3
+NET=$2
 
 array=( $@ )
 len=${#array[@]}
