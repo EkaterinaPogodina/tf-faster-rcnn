@@ -14,41 +14,11 @@ len=${#array[@]}
 EXTRA_ARGS=${array[@]:3:$len}
 EXTRA_ARGS_SLUG=${EXTRA_ARGS// /_}
 
-case ${DATASET} in
-  pascal_voc)
-    TRAIN_IMDB="voc_2007_trainval"
-    TEST_IMDB="voc_2007_test"
-    ITERS=70000
-    ANCHORS="[16,32,64]"
-    RATIOS="[0.5,1,2]"
-    ;;
-  pascal_voc_0712)
-    TRAIN_IMDB="voc_2007_trainval+voc_2012_trainval"
-    TEST_IMDB="voc_2007_test"
-    ITERS=110000
-    ANCHORS="[16,32,64]"
-    RATIOS="[0.5,1,2]"
-    ;;
-  coco)
-    TRAIN_IMDB="coco_2014_train+coco_2014_valminusminival"
-    TEST_IMDB="coco_2014_minival"
-    ITERS=490000
-    ANCHORS="[4,8,16]"
-    RATIOS="[0.5,1,2]"
-    ;;
-
-  stanford)
-    TRAIN_IMDB="stanford_train"
-    TEST_IMDB="stanford_val"
-    ITERS=60000
-    ANCHORS="[4,8,16]"
-    RATIOS="[0.5,1,2]"
-    ;;
-  *)
-    echo "No dataset given"
-    exit
-    ;;
-esac
+TRAIN_IMDB="stanford_train"
+TEST_IMDB="stanford_val"
+ITERS=60000
+ANCHORS="[4,8,16]"
+RATIOS="[0.5,1,2]"
 
 LOG="experiments/logs/test_${NET}_${TRAIN_IMDB}_${EXTRA_ARGS_SLUG}.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
 exec &> >(tee -a "$LOG")
