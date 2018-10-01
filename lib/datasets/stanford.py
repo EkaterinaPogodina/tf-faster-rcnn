@@ -154,6 +154,7 @@ class stanford(imdb):
     overlaps = np.zeros((num_objs, self.num_classes), dtype=np.float32)
     # "Seg" area for pascal is just the box area
     seg_areas = np.zeros((num_objs), dtype=np.float32)
+    tracks = np.zeros((num_objs), dtype=np.int32)
 
     # Load object bounding boxes into a data frame.
     for ix, obj in enumerate(objs):
@@ -163,8 +164,10 @@ class stanford(imdb):
       y1 = float(bbox.find('ymin').text)
       x2 = float(bbox.find('xmax').text)
       y2 = float(bbox.find('ymax').text)
+      track_id = int(bbox.find('track_id').text)
       cls = self._class_to_ind[obj.find('name').text.lower().strip()]
       boxes[ix, :] = [x1, y1, x2, y2]
+      tracks[ix] = track_id
       gt_classes[ix] = cls
       overlaps[ix, cls] = 1.0
       seg_areas[ix] = (x2 - x1 + 1) * (y2 - y1 + 1)
@@ -175,7 +178,8 @@ class stanford(imdb):
             'gt_classes': gt_classes,
             'gt_overlaps': overlaps,
             'flipped': False,
-            'seg_areas': seg_areas}
+            'seg_areas': seg_areas,
+            'tracks': tracks}
 
   def _get_comp_id(self):
     comp_id = (self._comp_id + '_' + self._salt if self.config['use_salt']

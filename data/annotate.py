@@ -119,6 +119,7 @@ def annotate_frames(sdd_annotation_file, dest_path, filename_prefix, number_of_f
                 ET.SubElement(object, "truncated").text = annotation_data[7] # occluded
                 ET.SubElement(object, "difficult").text = '0'
                 bndbox = ET.SubElement(object, "bndbox")
+                ET.SubElement(bndbox, "track_id").text = annotation_data[0]
                 ET.SubElement(bndbox, "xmin").text = annotation_data[1]
                 ET.SubElement(bndbox, "ymin").text = annotation_data[2]
                 ET.SubElement(bndbox, "xmax").text = annotation_data[3]
@@ -266,7 +267,7 @@ if __name__ == '__main__':
     num_val_images = 10000
     num_testing_images = 0
 
-    dataset_path = '../../../Downloads/stanford_campus_dataset-2'
+    dataset_path = '/Users/ekaterinapogodina/Downloads/stanford_campus_dataset-2'
     destination_folder_name = 'STANFORDdevkit'
     destination_path = os.path.join(dataset_path, destination_folder_name)
 
