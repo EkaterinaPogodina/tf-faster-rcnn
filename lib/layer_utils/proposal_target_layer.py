@@ -30,7 +30,7 @@ def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes):
   if cfg.TRAIN.USE_GT:
     zeros = np.zeros((gt_boxes.shape[0], 1), dtype=gt_boxes.dtype)
     all_rois = np.vstack(
-      (all_rois, np.hstack((zeros, gt_boxes[:, :-1])))
+      (all_rois, np.hstack((zeros, gt_boxes[:, :4])))
     )
     # not sure if it a wise appending, but anyway i am not using it
     all_scores = np.vstack((all_scores, zeros))
