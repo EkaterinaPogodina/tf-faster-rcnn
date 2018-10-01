@@ -115,9 +115,6 @@ class imdb(object):
       oldx2 = boxes[:, 2].copy()
       boxes[:, 0] = widths[i] - oldx2 - 1
       boxes[:, 2] = widths[i] - oldx1 - 1
-      if sum(oldx2 < oldx1) > 1:
-        print('hello')
-        return
       for b in range(len(boxes)):     
         if boxes[b][2] < boxes[b][0]:
           print('smth wrong')
@@ -127,7 +124,8 @@ class imdb(object):
       entry = {'boxes': boxes,
                'gt_overlaps': self.roidb[i]['gt_overlaps'],
                'gt_classes': self.roidb[i]['gt_classes'],
-               'flipped': True}
+               'flipped': True,
+               'tracks': self.roidb[i]['tracks']}
       self.roidb.append(entry)
     self._image_index = self._image_index * 2
 
@@ -230,6 +228,7 @@ class imdb(object):
       num_boxes = boxes.shape[0]
       overlaps = np.zeros((num_boxes, self.num_classes), dtype=np.float32)
 
+      #gt_roidb[i]
       if gt_roidb is not None and gt_roidb[i]['boxes'].size > 0:
         gt_boxes = gt_roidb[i]['boxes']
         gt_classes = gt_roidb[i]['gt_classes']
@@ -247,6 +246,7 @@ class imdb(object):
         'gt_overlaps': overlaps,
         'flipped': False,
         'seg_areas': np.zeros((num_boxes,), dtype=np.float32),
+        'tracks': gt_roidb[i]['tracks']
       })
     return roidb
 
@@ -261,6 +261,9 @@ class imdb(object):
                                                  b[i]['gt_overlaps']])
       a[i]['seg_areas'] = np.hstack((a[i]['seg_areas'],
                                      b[i]['seg_areas']))
+
+      a[i]['tracks'] = np.hstack((a[i]['tracks'],
+                                      b[i]['tracks']))
     return a
 
   def competition_mode(self, on):
