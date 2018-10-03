@@ -264,6 +264,7 @@ class SolverWrapper(object):
     stepsizes.append(max_iters)
     stepsizes.reverse()
     next_stepsize = stepsizes.pop()
+    prev_blobs = None
     while iter < max_iters + 1:
       # Learning rate
       if iter == next_stepsize + 1:
@@ -281,7 +282,7 @@ class SolverWrapper(object):
       if iter == 1 or now - last_summary_time > cfg.TRAIN.SUMMARY_INTERVAL:
         # Compute the graph with summary
         rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, summary = \
-          self.net.train_step_with_summary(sess, blobs, train_op)
+          self.net.train_step_with_summary(sess, blobs, train_op, prev_blobs)
         self.writer.add_summary(summary, float(iter))
         # Also check the summary on the validation set
         blobs_val = self.data_layer_val.forward()
@@ -291,8 +292,9 @@ class SolverWrapper(object):
       else:
         # Compute the graph without summary
         rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss = \
-          self.net.train_step(sess, blobs, train_op)
+          self.net.train_step(sess, blobs, train_op, prev_blobs)
       timer.toc()
+      prev_blobs = blobs
 
       # Display training information
       if iter % 10 == 0:

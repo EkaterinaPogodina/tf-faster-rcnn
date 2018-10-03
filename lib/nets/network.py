@@ -357,8 +357,10 @@ class Network(object):
   def create_architecture(self, mode, num_classes, tag=None,
                           anchor_scales=(8, 16, 32), anchor_ratios=(0.5, 1, 2)):
     self._image = tf.placeholder(tf.float32, shape=[1, None, None, 3])
+    self._image_prev = tf.placeholder(tf.float32, shape=[1, None, None, 3])
     self._im_info = tf.placeholder(tf.float32, shape=[3])
     self._gt_boxes = tf.placeholder(tf.float32, shape=[None, 6])
+    self._gt_boxes_prev = tf.placeholder(tf.float32, shape=[None, 6])
     self._tag = tag
 
     self._num_classes = num_classes
@@ -456,9 +458,12 @@ class Network(object):
 
     return summary
 
-  def train_step(self, sess, blobs, train_op):
+  def train_step(self, sess, blobs, train_op, blobs_prev=None):
     feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
                  self._gt_boxes: blobs['gt_boxes']}
+    if blobs_prev is not None:
+      feed_dict.update({self._image_prev: blobs_prev['data'],
+                        self._gt_boxes_prev: blobs['gt_boxes']})
     rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, _ = sess.run([self._losses["rpn_cross_entropy"],
                                                                         self._losses['rpn_loss_box'],
                                                                         self._losses['cross_entropy'],
@@ -468,9 +473,13 @@ class Network(object):
                                                                        feed_dict=feed_dict)
     return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss
 
-  def train_step_with_summary(self, sess, blobs, train_op):
+  def train_step_with_summary(self, sess, blobs, train_op, blobs_prev=None):
     feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
                  self._gt_boxes: blobs['gt_boxes']}
+
+    if blobs_prev is not None:
+      feed_dict.update({self._image_prev: blobs_prev['data'],
+                        self._gt_boxes_prev: blobs['gt_boxes']})
     rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, summary, _ = sess.run([self._losses["rpn_cross_entropy"],
                                                                                  self._losses['rpn_loss_box'],
                                                                                  self._losses['cross_entropy'],
@@ -482,8 +491,11 @@ class Network(object):
     #print(sess.run(blobs['data']))
     return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, summary
 
-  def train_step_no_return(self, sess, blobs, train_op):
+  def train_step_no_return(self, sess, blobs, train_op, blobs_prev=None):
     feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
                  self._gt_boxes: blobs['gt_boxes']}
+    if blobs_prev is not None:
+      feed_dict.update({self._image_prev: blobs_prev['data'],
+                        self._gt_boxes_prev: blobs['gt_boxes']})
     sess.run([train_op], feed_dict=feed_dict)
 
