@@ -475,7 +475,7 @@ class Network(object):
 
   def train_step_with_summary(self, sess, blobs, train_op, blobs_prev=None):
     feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
-                 self._gt_boxes: blobs_prev['gt_boxes']}
+                 self._gt_boxes: blobs['gt_boxes']}
 
     if blobs_prev is not None:
       feed_dict.update({self._image_prev: blobs_prev['data'],
@@ -496,6 +496,6 @@ class Network(object):
                  self._gt_boxes: blobs['gt_boxes']}
     if blobs_prev is not None:
       feed_dict.update({self._image_prev: blobs_prev['data'],
-                        self._gt_boxes_prev: blobs['gt_boxes']})
+                        self._gt_boxes_prev: blobs_prev['gt_boxes']})
     sess.run([train_op], feed_dict=feed_dict)
 
