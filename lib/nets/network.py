@@ -214,7 +214,7 @@ class Network(object):
       self._anchor_component()
       # region proposal network
       rois = self._region_proposal(net_conv, is_training, initializer)
-      #rois2 = self._region_proposal(net_conv2, is_training, initializer)
+      rois2 = self._region_proposal(net_conv2, is_training, initializer, postfix='/2')
       # region of interest pooling
       if cfg.POOLING_MODE == 'crop':
         pool5 = self._crop_pool_layer(net_conv, rois, "pool5")
