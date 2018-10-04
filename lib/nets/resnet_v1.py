@@ -79,6 +79,7 @@ class resnetv1(Network):
   # for images of different sizes: sometimes 0, sometimes 1
   def _build_base(self):
     with tf.variable_scope(self._scope, self._scope):
+      print(self._image.shape)
       net = resnet_utils.conv2d_same(self._image, 64, 7, stride=2, scope='conv1')
       net = tf.pad(net, [[0, 0], [1, 1], [1, 1], [0, 0]])
       net = slim.max_pool2d(net, [3, 3], stride=2, padding='VALID', scope='pool1')
@@ -103,12 +104,12 @@ class resnetv1(Network):
                                            reuse=reuse,
                                            scope=self._scope)
 
-        net_conv2, _ = resnet_v1.resnet_v1(net_conv2,
-                                          self._blocks2[0:cfg.RESNET.FIXED_BLOCKS],
-                                          global_pool=False,
-                                          include_root_block=False,
-                                          reuse=reuse,
-                                          scope=self._scope + '//2')
+        #net_conv2, _ = resnet_v1.resnet_v1(net_conv2,
+        #                                  self._blocks2[0:cfg.RESNET.FIXED_BLOCKS],
+        #                                  global_pool=False,
+        #                                  include_root_block=False,
+        #                                  reuse=reuse,
+        #                                  scope=self._scope + '//2')
 
     if cfg.RESNET.FIXED_BLOCKS < 3:
       with slim.arg_scope(resnet_arg_scope(is_training=is_training)):
@@ -120,7 +121,7 @@ class resnetv1(Network):
                                            scope=self._scope)
 
         #net_conv2, _ = resnet_v1.resnet_v1(net_conv2,
-        #                                  self._blocks[cfg.RESNET.FIXED_BLOCKS:-1],
+        #                                  self._blocks2[cfg.RESNET.FIXED_BLOCKS:-1],
         #                                  global_pool=False,
         #                                  include_root_block=False,
         #                                  reuse=reuse,

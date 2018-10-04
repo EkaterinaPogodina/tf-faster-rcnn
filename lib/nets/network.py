@@ -221,6 +221,8 @@ class Network(object):
       else:
         raise NotImplementedError
 
+
+
     fc7 = self._head_to_tail(pool5, is_training)
     with tf.variable_scope(self._scope, self._scope):
       # region classification
