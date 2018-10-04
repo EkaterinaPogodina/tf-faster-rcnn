@@ -85,26 +85,24 @@ class Network(object):
       return tf.reshape(reshaped_score, input_shape)
     return tf.nn.softmax(bottom, name=name)
 
-  def _proposal_top_layer(self, rpn_cls_prob, rpn_bbox_pred, name):
+  def _proposal_top_layer(self, rpn_cls_prob, rpn_bbox_pred, name, postfix=''):
     with tf.variable_scope(name) as scope:
       rois, rpn_scores = tf.py_func(proposal_top_layer,
                                     [rpn_cls_prob, rpn_bbox_pred, self._im_info,
                                      self._feat_stride, self._anchors, self._num_anchors],
-                                    [tf.float32, tf.float32], name="proposal_top")
+                                    [tf.float32, tf.float32], name="proposal_top" + postfix)
       rois.set_shape([cfg.TEST.RPN_TOP_N, 5])
       rpn_scores.set_shape([cfg.TEST.RPN_TOP_N, 1])
 
     return rois, rpn_scores
 
-  def _proposal_layer(self, rpn_cls_prob, rpn_bbox_pred, name):
+  def _proposal_layer(self, rpn_cls_prob, rpn_bbox_pred, name, postfix=''):
     #print(session.run(rpn_bbox_pred))
     with tf.variable_scope(name) as scope:
       rois, rpn_scores = tf.py_func(proposal_layer,
                                     [rpn_cls_prob, rpn_bbox_pred, self._im_info, self._mode,
                                      self._feat_stride, self._anchors, self._num_anchors],
-                                    [tf.float32, tf.float32], name="proposal")
-      print(rois)
-      print(rpn_bbox_pred)
+                                    [tf.float32, tf.float32], name="proposal" + postfix)
       rois.set_shape([None, 5])
       rpn_scores.set_shape([None, 1])
 
@@ -210,12 +208,13 @@ class Network(object):
       initializer = tf.random_normal_initializer(mean=0.0, stddev=0.01)
       initializer_bbox = tf.random_normal_initializer(mean=0.0, stddev=0.001)
 
-    net_conv = self._image_to_head(is_training)
+    net_conv, net_conv2 = self._image_to_head(is_training)
     with tf.variable_scope(self._scope, self._scope):
       # build the anchors for the image
       self._anchor_component()
       # region proposal network
       rois = self._region_proposal(net_conv, is_training, initializer)
+      #rois2 = self._region_proposal(net_conv2, is_training, initializer)
       # region of interest pooling
       if cfg.POOLING_MODE == 'crop':
         pool5 = self._crop_pool_layer(net_conv, rois, "pool5")
@@ -291,41 +290,41 @@ class Network(object):
 
     return loss
 
-  def _region_proposal(self, net_conv, is_training, initializer):
+  def _region_proposal(self, net_conv, is_training, initializer, postfix=''):
     rpn = slim.conv2d(net_conv, cfg.RPN_CHANNELS, [3, 3], trainable=is_training, weights_initializer=initializer,
-                        scope="rpn_conv/3x3")
+                        scope="rpn_conv/3x3" + postfix)
     self._act_summaries.append(rpn)
     rpn_cls_score = slim.conv2d(rpn, self._num_anchors * 2, [1, 1], trainable=is_training,
                                 weights_initializer=initializer,
-                                padding='VALID', activation_fn=None, scope='rpn_cls_score')
+                                padding='VALID', activation_fn=None, scope='rpn_cls_score' + postfix)
     # change it so that the score has 2 as its channel size
-    rpn_cls_score_reshape = self._reshape_layer(rpn_cls_score, 2, 'rpn_cls_score_reshape')
-    rpn_cls_prob_reshape = self._softmax_layer(rpn_cls_score_reshape, "rpn_cls_prob_reshape")
-    rpn_cls_pred = tf.argmax(tf.reshape(rpn_cls_score_reshape, [-1, 2]), axis=1, name="rpn_cls_pred")
-    rpn_cls_prob = self._reshape_layer(rpn_cls_prob_reshape, self._num_anchors * 2, "rpn_cls_prob")
+    rpn_cls_score_reshape = self._reshape_layer(rpn_cls_score, 2, 'rpn_cls_score_reshape' + postfix)
+    rpn_cls_prob_reshape = self._softmax_layer(rpn_cls_score_reshape, "rpn_cls_prob_reshape" + postfix)
+    rpn_cls_pred = tf.argmax(tf.reshape(rpn_cls_score_reshape, [-1, 2]), axis=1, name="rpn_cls_pred" + postfix)
+    rpn_cls_prob = self._reshape_layer(rpn_cls_prob_reshape, self._num_anchors * 2, "rpn_cls_prob" + postfix)
     rpn_bbox_pred = slim.conv2d(rpn, self._num_anchors * 4, [1, 1], trainable=is_training,
                                 weights_initializer=initializer,
-                                padding='VALID', activation_fn=None, scope='rpn_bbox_pred')
+                                padding='VALID', activation_fn=None, scope='rpn_bbox_pred' + postfix)
     if is_training:
-      rois, roi_scores = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois")
-      rpn_labels = self._anchor_target_layer(rpn_cls_score, "anchor")
+      rois, roi_scores = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois" + postfix)
+      rpn_labels = self._anchor_target_layer(rpn_cls_score, "anchor" + postfix)
       # Try to have a deterministic order for the computing graph, for reproducibility
       with tf.control_dependencies([rpn_labels]):
-        rois, _ = self._proposal_target_layer(rois, roi_scores, "rpn_rois")
+        rois, _ = self._proposal_target_layer(rois, roi_scores, "rpn_rois" + postfix)
     else:
       if cfg.TEST.MODE == 'nms':
-        rois, _ = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois")
+        rois, _ = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois" + postfix, postfix)
       elif cfg.TEST.MODE == 'top':
-        rois, _ = self._proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, "rois")
+        rois, _ = self._proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, "rois" + postfix, postfix)
       else:
         raise NotImplementedError
 
-    self._predictions["rpn_cls_score"] = rpn_cls_score
-    self._predictions["rpn_cls_score_reshape"] = rpn_cls_score_reshape
-    self._predictions["rpn_cls_prob"] = rpn_cls_prob
-    self._predictions["rpn_cls_pred"] = rpn_cls_pred
-    self._predictions["rpn_bbox_pred"] = rpn_bbox_pred
-    self._predictions["rois"] = rois
+    self._predictions["rpn_cls_score" + postfix] = rpn_cls_score
+    self._predictions["rpn_cls_score_reshape" + postfix] = rpn_cls_score_reshape
+    self._predictions["rpn_cls_prob" + postfix] = rpn_cls_prob
+    self._predictions["rpn_cls_pred" + postfix] = rpn_cls_pred
+    self._predictions["rpn_bbox_pred" + postfix] = rpn_bbox_pred
+    self._predictions["rois" + postfix] = rois
 
     return rois
 

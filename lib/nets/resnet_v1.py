@@ -83,13 +83,17 @@ class resnetv1(Network):
       net = tf.pad(net, [[0, 0], [1, 1], [1, 1], [0, 0]])
       net = slim.max_pool2d(net, [3, 3], stride=2, padding='VALID', scope='pool1')
 
-    return net
+      net2 = resnet_utils.conv2d_same(self._image_prev, 64, 7, stride=2, scope='conv1/2')
+      net2 = tf.pad(net2, [[0, 0], [1, 1], [1, 1], [0, 0]])
+      net2 = slim.max_pool2d(net2, [3, 3], stride=2, padding='VALID', scope='pool1/2')
+
+    return net, net2
 
   def _image_to_head(self, is_training, reuse=None):
     assert (0 <= cfg.RESNET.FIXED_BLOCKS <= 3)
     # Now the base is always fixed during training
     with slim.arg_scope(resnet_arg_scope(is_training=False)):
-      net_conv = self._build_base()
+      net_conv, net_conv2 = self._build_base()
     if cfg.RESNET.FIXED_BLOCKS > 0:
       with slim.arg_scope(resnet_arg_scope(is_training=False)):
         net_conv, _ = resnet_v1.resnet_v1(net_conv,
@@ -98,6 +102,14 @@ class resnetv1(Network):
                                            include_root_block=False,
                                            reuse=reuse,
                                            scope=self._scope)
+
+        net_conv2, _ = resnet_v1.resnet_v1(net_conv2,
+                                          self._blocks[0:cfg.RESNET.FIXED_BLOCKS],
+                                          global_pool=False,
+                                          include_root_block=False,
+                                          reuse=reuse,
+                                          scope=self._scope + '/2')
+
     if cfg.RESNET.FIXED_BLOCKS < 3:
       with slim.arg_scope(resnet_arg_scope(is_training=is_training)):
         net_conv, _ = resnet_v1.resnet_v1(net_conv,
@@ -107,10 +119,17 @@ class resnetv1(Network):
                                            reuse=reuse,
                                            scope=self._scope)
 
+        net_conv2, _ = resnet_v1.resnet_v1(net_conv2,
+                                          self._blocks[cfg.RESNET.FIXED_BLOCKS:-1],
+                                          global_pool=False,
+                                          include_root_block=False,
+                                          reuse=reuse,
+                                          scope=self._scope + '/2')
+
     self._act_summaries.append(net_conv)
     self._layers['head'] = net_conv
 
-    return net_conv
+    return net_conv, net_conv2
 
   def _head_to_tail(self, pool5, is_training, reuse=None):
     with slim.arg_scope(resnet_arg_scope(is_training=is_training)):
