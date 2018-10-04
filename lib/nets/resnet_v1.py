@@ -103,12 +103,12 @@ class resnetv1(Network):
                                            reuse=reuse,
                                            scope=self._scope)
 
-        #net_conv2, _ = resnet_v1.resnet_v1(net_conv2,
-        #                                  self._blocks[0:cfg.RESNET.FIXED_BLOCKS],
-        #                                  global_pool=False,
-        #                                  include_root_block=False,
-        #                                  reuse=reuse,
-        #                                  scope=self._scope + '/2')
+        net_conv2, _ = resnet_v1.resnet_v1(net_conv2,
+                                          self._blocks2[0:cfg.RESNET.FIXED_BLOCKS],
+                                          global_pool=False,
+                                          include_root_block=False,
+                                          reuse=reuse,
+                                          scope=self._scope + '//2')
 
     if cfg.RESNET.FIXED_BLOCKS < 3:
       with slim.arg_scope(resnet_arg_scope(is_training=is_training)):
@@ -144,31 +144,18 @@ class resnetv1(Network):
     return fc7
 
   def _decide_blocks(self):
-    # choose different blocks for different number of layers
-    if self._num_layers == 50:
-      self._blocks = [resnet_v1_block('block1', base_depth=64, num_units=3, stride=2),
-                      resnet_v1_block('block2', base_depth=128, num_units=4, stride=2),
-                      # use stride 1 for the last conv4 layer
-                      resnet_v1_block('block3', base_depth=256, num_units=6, stride=1),
-                      resnet_v1_block('block4', base_depth=512, num_units=3, stride=1)]
-
-    elif self._num_layers == 101:
-      self._blocks = [resnet_v1_block('block1', base_depth=64, num_units=3, stride=2),
+    self._blocks = [resnet_v1_block('block1', base_depth=64, num_units=3, stride=2),
                       resnet_v1_block('block2', base_depth=128, num_units=4, stride=2),
                       # use stride 1 for the last conv4 layer
                       resnet_v1_block('block3', base_depth=256, num_units=23, stride=1),
                       resnet_v1_block('block4', base_depth=512, num_units=3, stride=1)]
 
-    elif self._num_layers == 152:
-      self._blocks = [resnet_v1_block('block1', base_depth=64, num_units=3, stride=2),
-                      resnet_v1_block('block2', base_depth=128, num_units=8, stride=2),
-                      # use stride 1 for the last conv4 layer
-                      resnet_v1_block('block3', base_depth=256, num_units=36, stride=1),
-                      resnet_v1_block('block4', base_depth=512, num_units=3, stride=1)]
+    self._blocks2 = [resnet_v1_block('block1/2', base_depth=64, num_units=3, stride=2),
+                    resnet_v1_block('block2/2', base_depth=128, num_units=4, stride=2),
+                    # use stride 1 for the last conv4 layer
+                    resnet_v1_block('block3/2', base_depth=256, num_units=23, stride=1),
+                    resnet_v1_block('block4/2', base_depth=512, num_units=3, stride=1)]
 
-    else:
-      # other numbers are not supported
-      raise NotImplementedError
 
   def get_variables_to_restore(self, variables, var_keep_dic):
     variables_to_restore = []
