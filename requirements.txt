@@ -2,3 +2,6 @@ cython
 Pillow
 easydict
 opencv-python
+scipy
+tensorflow-gpu
+pyyaml
