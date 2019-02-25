@@ -36,6 +36,9 @@ class Network(object):
     self._train_summaries = []
     self._event_summaries = {}
     self._variables_to_fix = {}
+    self._prev_tracks = None
+    self._prev_rois = None
+
 
   def _add_gt_image(self):
     # add back mean
@@ -162,22 +165,26 @@ class Network(object):
 
   def _proposal_target_layer(self, rois, roi_scores, name):
     with tf.variable_scope(name) as scope:
-      rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights = tf.py_func(
+      rois, roi_scores, labels, tracks, tracks_matrix, bbox_targets, bbox_inside_weights, bbox_outside_weights = tf.py_func(
         proposal_target_layer,
-        [rois, roi_scores, self._gt_boxes, self._num_classes],
+        [rois, roi_scores, self._prev_tracks, self._gt_boxes, self._num_classes],
         [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
         name="proposal_target")
+
+      tracks.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
+      self._prev_tracks = tf.to_int32(tracks)
 
       rois.set_shape([cfg.TRAIN.BATCH_SIZE, 5])
       roi_scores.set_shape([cfg.TRAIN.BATCH_SIZE])
       labels.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
+      tracks_matrix.set_shape([cfg.TRAIN.BATCH_SIZE, 2])
       bbox_targets.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
       bbox_inside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
       bbox_outside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
 
       self._proposal_targets['rois'] = rois
       self._proposal_targets['labels'] = tf.to_int32(labels, name="to_int32")
-      self._proposal_targets['bbox_targets'] = bbox_targets
+      self._proposal_targets['tracks_matrix'] = tf.to_int32(tracks_matrix)
       self._proposal_targets['bbox_inside_weights'] = bbox_inside_weights
       self._proposal_targets['bbox_outside_weights'] = bbox_outside_weights
 
@@ -208,25 +215,28 @@ class Network(object):
       initializer = tf.random_normal_initializer(mean=0.0, stddev=0.01)
       initializer_bbox = tf.random_normal_initializer(mean=0.0, stddev=0.001)
 
-    net_conv, net_conv2 = self._image_to_head(is_training)
+    net_conv = self._image_to_head(is_training)
     with tf.variable_scope(self._scope, self._scope):
       # build the anchors for the image
       self._anchor_component()
       # region proposal network
       rois = self._region_proposal(net_conv, is_training, initializer)
-      #rois2 = self._region_proposal(net_conv2, is_training, initializer, postfix='/2')
       # region of interest pooling
       if cfg.POOLING_MODE == 'crop':
         pool5 = self._crop_pool_layer(net_conv, rois, "pool5")
       else:
         raise NotImplementedError
 
-    fc7 = self._head_to_tail(pool5, is_training)
+    fc7 = self._head_to_tail(pool5, is_training, self._scope)
+
+    if self._prev_rois is not None:
+      siam_net = self._siamese_layer(self._prev_rois, fc7)
+      self._prev_rois = fc7
+
     with tf.variable_scope(self._scope, self._scope):
       # region classification
       cls_prob, bbox_pred = self._region_classification(fc7, is_training, 
                                                         initializer, initializer_bbox)
-
     self._score_summaries.update(self._predictions)
 
     return rois, cls_prob, bbox_pred
@@ -305,6 +315,7 @@ class Network(object):
     rpn_bbox_pred = slim.conv2d(rpn, self._num_anchors * 4, [1, 1], trainable=is_training,
                                 weights_initializer=initializer,
                                 padding='VALID', activation_fn=None, scope='rpn_bbox_pred' + postfix)
+
     if is_training:
       rois, roi_scores = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois" + postfix)
       rpn_labels = self._anchor_target_layer(rpn_cls_score, "anchor" + postfix)
@@ -346,6 +357,9 @@ class Network(object):
     self._predictions["bbox_pred"] = bbox_pred
 
     return cls_prob, bbox_pred
+
+  def _siamese_layer(self, rois, prev_rois):
+    test = slim.conv2d(tf.concat(rois, prev_rois))
 
   def _image_to_head(self, is_training, reuse=None):
     raise NotImplementedError
@@ -476,9 +490,9 @@ class Network(object):
     feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
                  self._gt_boxes: blobs['gt_boxes']}
 
-    if blobs_prev is not None:
-      feed_dict.update({self._image_prev: blobs_prev['data'],
-                        self._gt_boxes_prev: blobs_prev['gt_boxes']})
+    # if blobs_prev is not None:
+    #   feed_dict.update({self._image_prev: blobs_prev['data'],
+    #                     self._gt_boxes_prev: blobs_prev['gt_boxes']})
     rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, summary, _ = sess.run([self._losses["rpn_cross_entropy"],
                                                                                  self._losses['rpn_loss_box'],
                                                                                  self._losses['cross_entropy'],

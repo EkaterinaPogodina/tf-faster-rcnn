@@ -15,7 +15,7 @@ from model.bbox_transform import bbox_transform
 from utils.cython_bbox import bbox_overlaps
 
 
-def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes):
+def proposal_target_layer(rpn_rois, rpn_scores, prev_tracks, gt_boxes, _num_classes):
   """
   Assign object detection proposals to ground-truth targets. Produces proposal
   classification labels and bounding-box regression targets.
@@ -41,7 +41,7 @@ def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes):
 
   # Sample rois with classification labels and bounding box regression
   # targets
-  labels, rois, roi_scores, bbox_targets, bbox_inside_weights = _sample_rois(
+  labels, tracks, rois, roi_scores, bbox_targets, bbox_inside_weights = _sample_rois(
     all_rois, all_scores, gt_boxes, fg_rois_per_image,
     rois_per_image, _num_classes)
 
@@ -52,7 +52,11 @@ def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes):
   bbox_inside_weights = bbox_inside_weights.reshape(-1, _num_classes * 4)
   bbox_outside_weights = np.array(bbox_inside_weights > 0).astype(np.float32)
 
-  return rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights
+  tracks_matrix = None
+  if prev_tracks is not None:
+    tracks_matrix = (prev_tracks[:, None] == tracks).astype(np.int32)
+
+  return rois, roi_scores, labels, tracks, tracks_matrix, bbox_targets, bbox_inside_weights, bbox_outside_weights
 
 
 def _get_bbox_regression_labels(bbox_target_data, num_classes):
@@ -103,10 +107,13 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_ima
   # overlaps: (rois x gt_boxes)
   overlaps = bbox_overlaps(
     np.ascontiguousarray(all_rois[:, 1:5], dtype=np.float),
-    np.ascontiguousarray(gt_boxes[:, :4], dtype=np.float))
+    np.ascontiguousarray(gt_boxes[:, :4], dtype=np.float)
+  )
   gt_assignment = overlaps.argmax(axis=1)
   max_overlaps = overlaps.max(axis=1)
   labels = gt_boxes[gt_assignment, 4]
+  tracks = gt_boxes[gt_assignment, 5]
+
 
   # Select foreground RoIs as those with >= FG_THRESH overlap
   fg_inds = np.where(max_overlaps >= cfg.TRAIN.FG_THRESH)[0]
@@ -149,4 +156,4 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_ima
   bbox_targets, bbox_inside_weights = \
     _get_bbox_regression_labels(bbox_target_data, num_classes)
 
-  return labels, rois, roi_scores, bbox_targets, bbox_inside_weights
+  return labels, tracks, rois, roi_scores, bbox_targets, bbox_inside_weights

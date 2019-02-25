@@ -78,24 +78,18 @@ class resnetv1(Network):
 
   # Do the first few layers manually, because 'SAME' padding can behave inconsistently
   # for images of different sizes: sometimes 0, sometimes 1
-  def _build_base(self):
-    with tf.variable_scope(self._scope, self._scope):
+  def _build_base(self, scope=None):
+    with tf.variable_scope(scope, scope):
       net = resnet_utils.conv2d_same(self._image, 64, 7, stride=2, scope='conv1')
       net = tf.pad(net, [[0, 0], [1, 1], [1, 1], [0, 0]])
       net = slim.max_pool2d(net, [3, 3], stride=2, padding='VALID', scope='pool1')
-
-    with tf.variable_scope(self._prev_scope, self._prev_scope):
-      net2 = resnet_utils.conv2d_same(self._image_prev, 64, 7, stride=2, scope='conv1')
-      net2 = tf.pad(net2, [[0, 0], [1, 1], [1, 1], [0, 0]])
-      net2 = slim.max_pool2d(net2, [3, 3], stride=2, padding='VALID', scope='pool1')
-
-    return net, net2
+    return net
 
   def _image_to_head(self, is_training, reuse=None):
     assert (0 <= cfg.RESNET.FIXED_BLOCKS <= 3)
     # Now the base is always fixed during training
     with slim.arg_scope(resnet_arg_scope(is_training=False)):
-      net_conv, net_conv2 = self._build_base()
+      net_conv = self._build_base(self._scope)
     if cfg.RESNET.FIXED_BLOCKS > 0:
       with slim.arg_scope(resnet_arg_scope(is_training=False)):
         net_conv, _ = resnet_v1.resnet_v1(net_conv,
@@ -104,14 +98,6 @@ class resnetv1(Network):
                                            include_root_block=False,
                                            reuse=reuse,
                                            scope=self._scope)
-
-      with slim.arg_scope(resnet_arg_scope(is_training=False)):
-        net_conv2, _ = resnet_v1.resnet_v1(net_conv2,
-                                            self._blocks2[0:cfg.RESNET.FIXED_BLOCKS],
-                                            global_pool=False,
-                                            include_root_block=False,
-                                            reuse=reuse,
-                                            scope=self._prev_scope)
 
     if cfg.RESNET.FIXED_BLOCKS < 3:
       with slim.arg_scope(resnet_arg_scope(is_training=is_training)):
@@ -122,17 +108,10 @@ class resnetv1(Network):
                                            reuse=reuse,
                                            scope=self._scope)
 
-      net_conv2, _ = resnet_v1.resnet_v1(net_conv2,
-                                          self._blocks2[cfg.RESNET.FIXED_BLOCKS:-1],
-                                          global_pool=False,
-                                          include_root_block=False,
-                                          reuse=reuse,
-                                          scope=self._prev_scope)
-
     self._act_summaries.append(net_conv)
     self._layers['head'] = net_conv
 
-    return net_conv, net_conv2
+    return net_conv
 
   def _head_to_tail(self, pool5, is_training, reuse=None):
     with slim.arg_scope(resnet_arg_scope(is_training=is_training)):
@@ -145,15 +124,6 @@ class resnetv1(Network):
       # average pooling done by reduce_mean
       fc7 = tf.reduce_mean(fc7, axis=[1, 2])
 
-
-      #fc7_2, _ = resnet_v1.resnet_v1(pool5,
-      #                             self._blocks2[-1:],
-      #                             global_pool=False,
-      #                             include_root_block=False,
-      #                             reuse=reuse,
-      #                             scope=self._scope)
-      # average pooling done by reduce_mean
-      fc7_2 = tf.reduce_mean(fc7_2, axis=[1, 2])
     return fc7
 
   def _decide_blocks(self):
@@ -175,7 +145,7 @@ class resnetv1(Network):
 
     for v in variables:
       # exclude the first conv layer to swap RGB to BGR
-      if v.name == (self._scope + '/conv1/weights:0'):
+      if v.name == (self._scope + '/conv1/weights:0') or v.name == (self._prev_scope + '/conv1/weights:0'):
         self._variables_to_fix[v.name] = v
         continue
       if v.name.split(':')[0] in var_keep_dic:
@@ -190,8 +160,12 @@ class resnetv1(Network):
       with tf.device("/cpu:0"):
         # fix RGB to BGR
         conv1_rgb = tf.get_variable("conv1_rgb", [7, 7, 3, 64], trainable=False)
-        restorer_fc = tf.train.Saver({self._scope + "/conv1/weights": conv1_rgb})
+        restorer_fc = tf.train.Saver({self._scope + "/conv1/weights": conv1_rgb,
+                                      self._prev_scope + "/conv1/weights": conv1_rgb})
         restorer_fc.restore(sess, pretrained_model)
 
         sess.run(tf.assign(self._variables_to_fix[self._scope + '/conv1/weights:0'], 
+                           tf.reverse(conv1_rgb, [2])))
+
+        sess.run(tf.assign(self._variables_to_fix[self._prev_scope + '/conv1/weights:0'],
                            tf.reverse(conv1_rgb, [2])))
