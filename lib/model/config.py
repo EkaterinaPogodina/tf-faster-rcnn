@@ -39,6 +39,9 @@ __C.TRAIN.DISPLAY = 10
 # Whether to double the learning rate for bias
 __C.TRAIN.DOUBLE_BIAS = True
 
+# Whether to initialize the weights with truncated normal distribution 
+__C.TRAIN.TRUNCATED = False
+
 # Whether to have weight decay on bias as well
 __C.TRAIN.BIAS_DECAY = False
 
