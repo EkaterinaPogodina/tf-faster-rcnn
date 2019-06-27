@@ -156,11 +156,8 @@ class Network(object):
 
       return rois, roi_scores
 
-  def _anchor_component(self, prev=False):
-    var_scope = 'ANCHOR_' + self._tag
-    if prev:
-      var_scope += '_prev'
-    with tf.variable_scope(var_scope) as scope:
+  def _anchor_component(self):
+    with tf.variable_scope('ANCHOR_' + self._tag) as scope:
       # just to get the shape right
       height = tf.to_int32(tf.ceil(self._im_info[0] / np.float32(self._feat_stride[0])))
       width = tf.to_int32(tf.ceil(self._im_info[1] / np.float32(self._feat_stride[0])))
@@ -170,14 +167,8 @@ class Network(object):
                                           [tf.float32, tf.int32], name="generate_anchors")
       anchors.set_shape([None, 4])
       anchor_length.set_shape([])
-
-      if not prev:
-        self._anchors = anchors
-        self._anchor_length = anchor_length
-
-      else:
-        self._anchors_prev = anchors
-        self._anchor_length_prev = anchor_length
+      self._anchors = anchors
+      self._anchor_length = anchor_length
 
   def _build_network(self, is_training=True):
     # select initializers
@@ -186,28 +177,24 @@ class Network(object):
 
     net_conv, net_conv2 = self._image_to_head(is_training)
     with tf.variable_scope(self._scope, self._scope):
+      # build the anchors for the image
       self._anchor_component()
+      # region proposal network
       rois = self._region_proposal(net_conv, is_training, initializer)
-      pool5 = self._crop_pool_layer(net_conv, rois, "pool5")
-
-    with tf.variable_scope(self._prev_scope, self._prev_scope):
-      self._anchor_component(prev=True)
-      rois2 = self._region_proposal(net_conv2, is_training, initializer, postfix='_prev')
-      pool5_2 = self._crop_pool_layer(net_conv2, rois2, "pool5")
+      #rois2 = self._region_proposal(net_conv2, is_training, initializer, postfix='/2')
+      # region of interest pooling
+      if cfg.POOLING_MODE == 'crop':
+        pool5 = self._crop_pool_layer(net_conv, rois, "pool5")
+      else:
+        raise NotImplementedError
 
     fc7 = self._head_to_tail(pool5, is_training)
-    fc7_2 = self._head_to_tail(pool5_2, is_training, prev=True)
 
     with tf.variable_scope(self._scope, self._scope):
       # region classification
       cls_prob, bbox_pred = self._region_classification(fc7, is_training, 
                                                         initializer, initializer_bbox)
-
-    with tf.variable_scope(self._prev_scope, self._prev_scope):
-      # region classification
-      cls_prob2, bbox_pred2 = self._region_classification(fc7_2, is_training,
-                                                        initializer, initializer_bbox)
-    return rois, cls_prob, bbox_pred, rois2, cls_prob2, bbox_pred2
+    return rois, cls_prob, bbox_pred
 
   def _smooth_l1_loss(self, bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights, sigma=1.0, dim=[1]):
     sigma_2 = sigma ** 2
@@ -365,7 +352,7 @@ class Network(object):
                     weights_regularizer=weights_regularizer,
                     biases_regularizer=biases_regularizer, 
                     biases_initializer=tf.constant_initializer(0.0)): 
-      rois, cls_prob, bbox_pred, rois2, cls_prob2, bbox_pred2 = self._build_network(training)
+      rois, cls_prob, bbox_pred = self._build_network(training)
 
     layers_to_output = {'rois': rois}
 

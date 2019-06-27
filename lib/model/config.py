@@ -39,6 +39,9 @@ __C.TRAIN.DISPLAY = 10
 # Whether to double the learning rate for bias
 __C.TRAIN.DOUBLE_BIAS = True
 
+# Whether to initialize the weights with truncated normal distribution 
+__C.TRAIN.TRUNCATED = False
+
 # Whether to have weight decay on bias as well
 __C.TRAIN.BIAS_DECAY = False
 
@@ -265,6 +268,9 @@ __C.EXP_DIR = 'default'
 
 # Use GPU implementation of non-maximum suppression
 __C.USE_GPU_NMS = True
+
+# Default pooling mode, only 'crop' is available
+__C.POOLING_MODE = 'crop'
 
 # Size of the pooled region after RoI pooling
 __C.POOLING_SIZE = 7
