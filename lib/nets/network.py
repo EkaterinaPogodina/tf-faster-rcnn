@@ -23,6 +23,7 @@ from utils.visualization import draw_bounding_boxes
 
 from model.config import cfg
 
+
 class Network(object):
   def __init__(self):
     self._predictions = {}
@@ -31,8 +32,6 @@ class Network(object):
     self._proposal_targets = {}
     self._layers = {}
     self._gt_image = None
-    self._act_summaries = []
-    self._score_summaries = {}
     self._train_summaries = []
     self._event_summaries = {}
     self._variables_to_fix = {}
@@ -135,8 +134,6 @@ class Network(object):
       self._anchor_targets['rpn_bbox_inside_weights'] = rpn_bbox_inside_weights
       self._anchor_targets['rpn_bbox_outside_weights'] = rpn_bbox_outside_weights
 
-      self._score_summaries.update(self._anchor_targets)
-
     return rpn_labels
 
   def _proposal_target_layer(self, rois, roi_scores, name):
@@ -160,8 +157,6 @@ class Network(object):
       self._proposal_targets['bbox_inside_weights'] = bbox_inside_weights
       self._proposal_targets['bbox_outside_weights'] = bbox_outside_weights
 
-      self._score_summaries.update(self._proposal_targets)
-
       return rois, roi_scores
 
   def _anchor_component(self):
@@ -180,12 +175,8 @@ class Network(object):
 
   def _build_network(self, is_training=True):
     # select initializers
-    if cfg.TRAIN.TRUNCATED:
-      initializer = tf.truncated_normal_initializer(mean=0.0, stddev=0.01)
-      initializer_bbox = tf.truncated_normal_initializer(mean=0.0, stddev=0.001)
-    else:
-      initializer = tf.random_normal_initializer(mean=0.0, stddev=0.01)
-      initializer_bbox = tf.random_normal_initializer(mean=0.0, stddev=0.001)
+    initializer = tf.random_normal_initializer(mean=0.0, stddev=0.01)
+    initializer_bbox = tf.random_normal_initializer(mean=0.0, stddev=0.001)
 
     net_conv, net_conv2 = self._image_to_head(is_training)
     with tf.variable_scope(self._scope, self._scope):
@@ -205,8 +196,6 @@ class Network(object):
       # region classification
       cls_prob, bbox_pred = self._region_classification(fc7, is_training, 
                                                         initializer, initializer_bbox)
-
-    self._score_summaries.update(self._predictions)
 
     return rois, cls_prob, bbox_pred
 
@@ -426,5 +415,5 @@ class Network(object):
                                                                         self._losses['loss_box'],
                                                                         self._losses['total_loss'],
                                                                         train_op],
-                                                                       feed_dict=feed_dict)
+                                                                        feed_dict=feed_dict)
     return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss
