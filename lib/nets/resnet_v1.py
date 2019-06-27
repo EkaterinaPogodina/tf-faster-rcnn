@@ -96,22 +96,22 @@ class resnetv1(Network):
     # Now the base is always fixed during training
     with slim.arg_scope(resnet_arg_scope(is_training=False)):
       net_conv, net_conv2 = self._build_base()
-    # if cfg.RESNET.FIXED_BLOCKS > 0:
-    #   with slim.arg_scope(resnet_arg_scope(is_training=False)):
-    #     net_conv, _ = resnet_v1.resnet_v1(net_conv,
-    #                                        self._blocks[0:cfg.RESNET.FIXED_BLOCKS],
-    #                                        global_pool=False,
-    #                                        include_root_block=False,
-    #                                        reuse=reuse,
-    #                                        scope=self._scope)
-    #
-    #   with slim.arg_scope(resnet_arg_scope(is_training=False)):
-    #     net_conv2, _ = resnet_v1.resnet_v1(net_conv2,
-    #                                         self._blocks2[0:cfg.RESNET.FIXED_BLOCKS],
-    #                                         global_pool=False,
-    #                                         include_root_block=False,
-    #                                         reuse=reuse,
-    #                                         scope=self._prev_scope)
+    if cfg.RESNET.FIXED_BLOCKS > 0:
+      with slim.arg_scope(resnet_arg_scope(is_training=False)):
+        net_conv, _ = resnet_v1.resnet_v1(net_conv,
+                                           self._blocks[0:cfg.RESNET.FIXED_BLOCKS],
+                                           global_pool=False,
+                                           include_root_block=False,
+                                           reuse=reuse,
+                                           scope=self._scope)
+
+      with slim.arg_scope(resnet_arg_scope(is_training=False)):
+        net_conv2, _ = resnet_v1.resnet_v1(net_conv2,
+                                            self._blocks2[0:cfg.RESNET.FIXED_BLOCKS],
+                                            global_pool=False,
+                                            include_root_block=False,
+                                            reuse=reuse,
+                                            scope=self._prev_scope)
 
     if cfg.RESNET.FIXED_BLOCKS < 3:
       with slim.arg_scope(resnet_arg_scope(is_training=is_training)):
@@ -142,18 +142,7 @@ class resnetv1(Network):
                                    include_root_block=False,
                                    reuse=reuse,
                                    scope=self._scope)
-      # average pooling done by reduce_mean
       fc7 = tf.reduce_mean(fc7, axis=[1, 2])
-
-
-      #fc7_2, _ = resnet_v1.resnet_v1(pool5,
-      #                             self._blocks2[-1:],
-      #                             global_pool=False,
-      #                             include_root_block=False,
-      #                             reuse=reuse,
-      #                             scope=self._scope)
-      # average pooling done by reduce_mean
-      # fc7_2 = tf.reduce_mean(fc7_2, axis=[1, 2])
     return fc7
 
   def _decide_blocks(self):
