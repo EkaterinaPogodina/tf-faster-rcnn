@@ -193,11 +193,16 @@ class Network(object):
       prev_pool5 = self._crop_pool_layer(net_conv, rois, "pool5")
 
     fc7 = self._head_to_tail(pool5, is_training)
-    # fc7_2 = self._head_to_tail(prev_pool5, is_training)
+    fc7_2 = self._head_to_tail(prev_pool5, is_training, prev=True)
     with tf.variable_scope(self._scope, self._scope):
       # region classification
       cls_prob, bbox_pred = self._region_classification(fc7, is_training, 
                                                         initializer, initializer_bbox)
+
+    with tf.variable_scope(self._prev_scope, self._prev_scope):
+      # region classification
+      prev_cls_prob, prev_bbox_pred = self._region_classification(fc7_2, is_training,
+                                                        initializer, initializer_bbox, postfix='_prev')
     return rois, cls_prob, bbox_pred
 
   def _smooth_l1_loss(self, bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights, sigma=1.0, dim=[1]):
@@ -294,7 +299,7 @@ class Network(object):
 
     return rois
 
-  def _region_classification(self, fc7, is_training, initializer, initializer_bbox):
+  def _region_classification(self, fc7, is_training, initializer, initializer_bbox, postfix=''):
     cls_score = slim.fully_connected(fc7, self._num_classes, 
                                        weights_initializer=initializer,
                                        trainable=is_training,
@@ -306,10 +311,10 @@ class Network(object):
                                      trainable=is_training,
                                      activation_fn=None, scope='bbox_pred')
 
-    self._predictions["cls_score"] = cls_score
-    self._predictions["cls_pred"] = cls_pred
-    self._predictions["cls_prob"] = cls_prob
-    self._predictions["bbox_pred"] = bbox_pred
+    self._predictions["cls_score" + postfix] = cls_score
+    self._predictions["cls_pred" + postfix] = cls_pred
+    self._predictions["cls_prob" + postfix] = cls_prob
+    self._predictions["bbox_pred" + postfix] = bbox_pred
 
     return cls_prob, bbox_pred
 
