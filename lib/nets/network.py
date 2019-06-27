@@ -156,7 +156,8 @@ class Network(object):
 
       return rois, roi_scores
 
-  def _anchor_component(self):
+  def _anchor_component(self, prev=False):
+
     with tf.variable_scope('ANCHOR_' + self._tag) as scope:
       # just to get the shape right
       height = tf.to_int32(tf.ceil(self._im_info[0] / np.float32(self._feat_stride[0])))
@@ -167,8 +168,13 @@ class Network(object):
                                           [tf.float32, tf.int32], name="generate_anchors")
       anchors.set_shape([None, 4])
       anchor_length.set_shape([])
-      self._anchors = anchors
-      self._anchor_length = anchor_length
+      if not prev:
+        self._anchors = anchors
+        self._anchor_length = anchor_length
+
+      else:
+        self._prev_anchors = anchors
+        self._prev_anchor_length = anchor_length
 
   def _build_network(self, is_training=True):
     # select initializers
