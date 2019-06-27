@@ -129,7 +129,6 @@ class resnetv1(Network):
                                           reuse=reuse,
                                           scope=self._prev_scope)
 
-    self._act_summaries.append(net_conv)
     self._layers['head'] = net_conv
 
     return net_conv, net_conv2

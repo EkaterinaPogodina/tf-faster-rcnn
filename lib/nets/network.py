@@ -31,10 +31,6 @@ class Network(object):
     self._proposal_targets = {}
     self._layers = {}
     self._gt_image = None
-    self._act_summaries = []
-    self._score_summaries = {}
-    self._train_summaries = []
-    self._event_summaries = {}
     self._variables_to_fix = {}
 
   def _add_gt_image(self):
@@ -135,8 +131,6 @@ class Network(object):
       self._anchor_targets['rpn_bbox_inside_weights'] = rpn_bbox_inside_weights
       self._anchor_targets['rpn_bbox_outside_weights'] = rpn_bbox_outside_weights
 
-      self._score_summaries.update(self._anchor_targets)
-
     return rpn_labels
 
   def _proposal_target_layer(self, rois, roi_scores, name):
@@ -160,8 +154,6 @@ class Network(object):
       self._proposal_targets['bbox_inside_weights'] = bbox_inside_weights
       self._proposal_targets['bbox_outside_weights'] = bbox_outside_weights
 
-      self._score_summaries.update(self._proposal_targets)
-
       return rois, roi_scores
 
   def _anchor_component(self):
@@ -180,10 +172,6 @@ class Network(object):
 
   def _build_network(self, is_training=True):
     # select initializers
-    if cfg.TRAIN.TRUNCATED:
-      initializer = tf.truncated_normal_initializer(mean=0.0, stddev=0.01)
-      initializer_bbox = tf.truncated_normal_initializer(mean=0.0, stddev=0.001)
-    else:
       initializer = tf.random_normal_initializer(mean=0.0, stddev=0.01)
       initializer_bbox = tf.random_normal_initializer(mean=0.0, stddev=0.001)
 
@@ -205,9 +193,6 @@ class Network(object):
       # region classification
       cls_prob, bbox_pred = self._region_classification(fc7, is_training, 
                                                         initializer, initializer_bbox)
-
-    self._score_summaries.update(self._predictions)
-
     return rois, cls_prob, bbox_pred
 
   def _smooth_l1_loss(self, bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights, sigma=1.0, dim=[1]):
@@ -264,8 +249,6 @@ class Network(object):
       loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
       regularization_loss = tf.add_n(tf.losses.get_regularization_losses(), 'regu')
       self._losses['total_loss'] = loss + regularization_loss
-
-      self._event_summaries.update(self._losses)
 
     return loss
 
@@ -373,8 +356,8 @@ class Network(object):
 
     layers_to_output = {'rois': rois}
 
-    for var in tf.trainable_variables():
-      self._train_summaries.append(var)
+    # for var in tf.trainable_variables():
+    #   self._train_summaries.append(var)
 
     if testing:
       stds = np.tile(np.array(cfg.TRAIN.BBOX_NORMALIZE_STDS), (self._num_classes))
