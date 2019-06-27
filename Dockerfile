@@ -29,7 +29,7 @@ RUN virtualenv -p python3 virtual
 
 WORKDIR /root
 
-ADD tf-faster-rcnn /root/
+ADD . /root/
 
 # Add CUDA to the path
 ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/usr/local/cuda/lib64
