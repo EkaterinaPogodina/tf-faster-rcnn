@@ -172,8 +172,8 @@ class Network(object):
 
   def _build_network(self, is_training=True):
     # select initializers
-      initializer = tf.random_normal_initializer(mean=0.0, stddev=0.01)
-      initializer_bbox = tf.random_normal_initializer(mean=0.0, stddev=0.001)
+    initializer = tf.random_normal_initializer(mean=0.0, stddev=0.01)
+    initializer_bbox = tf.random_normal_initializer(mean=0.0, stddev=0.001)
 
     net_conv, net_conv2 = self._image_to_head(is_training)
     with tf.variable_scope(self._scope, self._scope):
@@ -255,7 +255,6 @@ class Network(object):
   def _region_proposal(self, net_conv, is_training, initializer, postfix=''):
     rpn = slim.conv2d(net_conv, cfg.RPN_CHANNELS, [3, 3], trainable=is_training, weights_initializer=initializer,
                         scope="rpn_conv/3x3" + postfix)
-    self._act_summaries.append(rpn)
     rpn_cls_score = slim.conv2d(rpn, self._num_anchors * 2, [1, 1], trainable=is_training,
                                 weights_initializer=initializer,
                                 padding='VALID', activation_fn=None, scope='rpn_cls_score' + postfix)

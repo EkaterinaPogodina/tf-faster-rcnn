@@ -130,6 +130,7 @@ class resnetv1(Network):
                                           scope=self._prev_scope)
 
     self._layers['head'] = net_conv
+    self._layers['head_prev'] = net_conv2
 
     return net_conv, net_conv2
 
@@ -158,15 +159,13 @@ class resnetv1(Network):
   def _decide_blocks(self):
     self._blocks = [resnet_v1_block('block1', base_depth=64, num_units=3, stride=2),
                       resnet_v1_block('block2', base_depth=128, num_units=4, stride=2),
-                      # use stride 1 for the last conv4 layer
                       resnet_v1_block('block3', base_depth=256, num_units=23, stride=1),
                       resnet_v1_block('block4', base_depth=512, num_units=3, stride=1)]
 
-    self._blocks2 = [resnet_v1_block('block1', base_depth=64, num_units=3, stride=2),
-                    resnet_v1_block('block2', base_depth=128, num_units=4, stride=2),
-                    # use stride 1 for the last conv4 layer
-                    resnet_v1_block('block3', base_depth=256, num_units=23, stride=1),
-                    resnet_v1_block('block4', base_depth=512, num_units=3, stride=1)]
+    self._blocks2 = [resnet_v1_block('block1_prev', base_depth=64, num_units=3, stride=2),
+                    resnet_v1_block('block2_prev', base_depth=128, num_units=4, stride=2),
+                    resnet_v1_block('block3_prev', base_depth=256, num_units=23, stride=1),
+                    resnet_v1_block('block4_prev', base_depth=512, num_units=3, stride=1)]
 
 
   def get_variables_to_restore(self, variables, var_keep_dic):
