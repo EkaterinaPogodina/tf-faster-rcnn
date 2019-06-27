@@ -392,6 +392,9 @@ class Network(object):
     if blobs_prev is not None:
       feed_dict.update({self._image_prev: blobs_prev['data'],
                         self._gt_boxes_prev: blobs_prev['gt_boxes']})
+    else:
+      feed_dict.update({self._image_prev: blobs['data'],
+                        self._gt_boxes_prev: blobs['gt_boxes']})
     rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, _ = sess.run([self._losses["rpn_cross_entropy"],
                                                                         self._losses['rpn_loss_box'],
                                                                         self._losses['cross_entropy'],
