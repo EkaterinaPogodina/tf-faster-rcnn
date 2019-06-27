@@ -147,8 +147,8 @@ class SolverWrapper(object):
       # We will handle the snapshots ourselves
       self.saver = tf.train.Saver(max_to_keep=100000)
       # Write the train and validation information to tensorboard
-      self.writer = tf.summary.FileWriter(self.tbdir, sess.graph)
-      self.valwriter = tf.summary.FileWriter(self.tbvaldir)
+      # self.writer = tf.summary.FileWriter(self.tbdir, sess.graph)
+      # self.valwriter = tf.summary.FileWriter(self.tbvaldir)
 
     return lr, train_op
 
@@ -279,19 +279,19 @@ class SolverWrapper(object):
       blobs = self.data_layer.forward()
 
       now = time.time()
-      if iter == 1 or now - last_summary_time > cfg.TRAIN.SUMMARY_INTERVAL:
-        # Compute the graph with summary
-        rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, summary = \
-          self.net.train_step_with_summary(sess, blobs, train_op, prev_blobs)
-        self.writer.add_summary(summary, float(iter))
-        # Also check the summary on the validation set
-        blobs_val = self.data_layer_val.forward()
-        summary_val = self.net.get_summary(sess, blobs_val)
-        self.valwriter.add_summary(summary_val, float(iter))
-        last_summary_time = now
-      else:
-        # Compute the graph without summary
-        rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss = \
+      # if iter == 1 or now - last_summary_time > cfg.TRAIN.SUMMARY_INTERVAL:
+      #   # Compute the graph with summary
+      #   rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, summary = \
+      #     self.net.train_step_with_summary(sess, blobs, train_op, prev_blobs)
+      #   self.writer.add_summary(summary, float(iter))
+      #   # Also check the summary on the validation set
+      #   blobs_val = self.data_layer_val.forward()
+      #   summary_val = self.net.get_summary(sess, blobs_val)
+      #   self.valwriter.add_summary(summary_val, float(iter))
+      #   last_summary_time = now
+      # else:
+      #   # Compute the graph without summary
+      rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss = \
           self.net.train_step(sess, blobs, train_op, prev_blobs)
       timer.toc()
       prev_blobs = blobs
@@ -319,8 +319,8 @@ class SolverWrapper(object):
     if last_snapshot_iter != iter - 1:
       self.snapshot(sess, iter - 1)
 
-    self.writer.close()
-    self.valwriter.close()
+    # self.writer.close()
+    # self.valwriter.close()
 
 
 def get_training_roidb(imdb):
