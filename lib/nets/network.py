@@ -187,6 +187,11 @@ class Network(object):
       rois = self._region_proposal(net_conv, is_training, initializer)
       pool5 = self._crop_pool_layer(net_conv, rois, "pool5")
 
+    with tf.variable_scope(self._prev_scope, self._prev_scope):
+      self._anchor_component(prev=True)
+      prev_rois = self._region_proposal(net_conv, is_training, initializer)
+      prev_pool5 = self._crop_pool_layer(net_conv, rois, "pool5")
+
     fc7 = self._head_to_tail(pool5, is_training)
     with tf.variable_scope(self._scope, self._scope):
       # region classification
