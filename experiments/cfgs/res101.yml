@@ -13,5 +13,3 @@ TRAIN:
   SNAPSHOT_PREFIX: res101_faster_rcnn
 TEST:
   HAS_RPN: True
-POOLING_MODE: crop
-#roi_pooling

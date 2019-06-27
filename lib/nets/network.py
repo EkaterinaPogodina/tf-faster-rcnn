@@ -196,7 +196,7 @@ class Network(object):
       pool5_2 = self._crop_pool_layer(net_conv2, rois2, "pool5")
 
     fc7 = self._head_to_tail(pool5, is_training)
-    fc7_2 = self._head_to_tail(pool5_2, is_training)
+    fc7_2 = self._head_to_tail(pool5_2, is_training, prev=True)
 
     with tf.variable_scope(self._scope, self._scope):
       # region classification
@@ -325,7 +325,7 @@ class Network(object):
   def _image_to_head(self, is_training, reuse=None):
     raise NotImplementedError
 
-  def _head_to_tail(self, pool5, is_training, reuse=None):
+  def _head_to_tail(self, pool5, is_training, reuse=None, prev=False):
     raise NotImplementedError
 
   def create_architecture(self, mode, num_classes, tag=None,
@@ -368,9 +368,6 @@ class Network(object):
       rois, cls_prob, bbox_pred, rois2, cls_prob2, bbox_pred2 = self._build_network(training)
 
     layers_to_output = {'rois': rois}
-
-    # for var in tf.trainable_variables():
-    #   self._train_summaries.append(var)
 
     if testing:
       stds = np.tile(np.array(cfg.TRAIN.BBOX_NORMALIZE_STDS), (self._num_classes))

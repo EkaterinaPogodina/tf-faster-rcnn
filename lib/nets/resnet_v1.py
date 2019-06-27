@@ -134,14 +134,17 @@ class resnetv1(Network):
 
     return net_conv, net_conv2
 
-  def _head_to_tail(self, pool5, is_training, reuse=None):
+  def _head_to_tail(self, pool5, is_training, reuse=None, prev=False):
+    var_scope = self._scope
+    if prev:
+        var_scope = self._prev_scope
     with slim.arg_scope(resnet_arg_scope(is_training=is_training)):
       fc7, _ = resnet_v1.resnet_v1(pool5,
                                    self._blocks[-1:],
                                    global_pool=False,
                                    include_root_block=False,
                                    reuse=reuse,
-                                   scope=self._scope)
+                                   scope=var_scope)
       fc7 = tf.reduce_mean(fc7, axis=[1, 2])
     return fc7
 
