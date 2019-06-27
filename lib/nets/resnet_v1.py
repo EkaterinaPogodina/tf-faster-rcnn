@@ -153,7 +153,7 @@ class resnetv1(Network):
       #                             reuse=reuse,
       #                             scope=self._scope)
       # average pooling done by reduce_mean
-      fc7_2 = tf.reduce_mean(fc7_2, axis=[1, 2])
+      # fc7_2 = tf.reduce_mean(fc7_2, axis=[1, 2])
     return fc7
 
   def _decide_blocks(self):
