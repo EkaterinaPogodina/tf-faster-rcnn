@@ -177,16 +177,9 @@ class Network(object):
 
     net_conv, net_conv2 = self._image_to_head(is_training)
     with tf.variable_scope(self._scope, self._scope):
-      # build the anchors for the image
       self._anchor_component()
-      # region proposal network
       rois = self._region_proposal(net_conv, is_training, initializer)
-      #rois2 = self._region_proposal(net_conv2, is_training, initializer, postfix='/2')
-      # region of interest pooling
-      if cfg.POOLING_MODE == 'crop':
-        pool5 = self._crop_pool_layer(net_conv, rois, "pool5")
-      else:
-        raise NotImplementedError
+      pool5 = self._crop_pool_layer(net_conv, rois, "pool5")
 
     fc7 = self._head_to_tail(pool5, is_training)
     with tf.variable_scope(self._scope, self._scope):

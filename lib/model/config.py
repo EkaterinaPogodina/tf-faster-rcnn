@@ -269,9 +269,6 @@ __C.EXP_DIR = 'default'
 # Use GPU implementation of non-maximum suppression
 __C.USE_GPU_NMS = True
 
-# Default pooling mode, only 'crop' is available
-__C.POOLING_MODE = 'crop'
-
 # Size of the pooled region after RoI pooling
 __C.POOLING_SIZE = 7
 
