@@ -133,8 +133,8 @@ class Network(object):
 
     return rpn_labels
 
-  def _proposal_target_layer(self, rois, roi_scores, name):
-    with tf.variable_scope(name) as scope:
+  def _proposal_target_layer(self, rois, roi_scores, name, postfix=''):
+    with tf.variable_scope(name + postfix) as scope:
       rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights = tf.py_func(
         proposal_target_layer,
         [rois, roi_scores, self._gt_boxes, self._num_classes],
@@ -148,11 +148,11 @@ class Network(object):
       bbox_inside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
       bbox_outside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
 
-      self._proposal_targets['rois'] = rois
-      self._proposal_targets['labels'] = tf.to_int32(labels, name="to_int32")
-      self._proposal_targets['bbox_targets'] = bbox_targets
-      self._proposal_targets['bbox_inside_weights'] = bbox_inside_weights
-      self._proposal_targets['bbox_outside_weights'] = bbox_outside_weights
+      self._proposal_targets['rois' + postfix] = rois
+      self._proposal_targets['labels' + postfix] = tf.to_int32(labels, name="to_int32")
+      self._proposal_targets['bbox_targets' + postfix] = bbox_targets
+      self._proposal_targets['bbox_inside_weights' + postfix] = bbox_inside_weights
+      self._proposal_targets['bbox_outside_weights' + postfix] = bbox_outside_weights
 
       return rois, roi_scores
 
@@ -304,7 +304,7 @@ class Network(object):
       rpn_labels = self._anchor_target_layer(rpn_cls_score, name="anchor" + postfix, postfix=postfix)
       # Try to have a deterministic order for the computing graph, for reproducibility
       with tf.control_dependencies([rpn_labels]):
-        rois, _ = self._proposal_target_layer(rois, roi_scores, "rpn_rois" + postfix)
+        rois, _ = self._proposal_target_layer(rois, roi_scores, "rpn_rois", postfix=postfix)
     else:
       if cfg.TEST.MODE == 'nms':
         rois, _ = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois" + postfix)
