@@ -275,15 +275,15 @@ class SolverWrapper(object):
 
       rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, tracks_loss = \
           self.net.train_step(sess, blobs, train_op, prev_blobs)
-      print("Tracks loss!!!", tracks_loss)
+
       timer.toc()
       prev_blobs = blobs
 
       # Display training information
       if iter % 10 == 0:
         print('iter: %d / %d, total loss: %.6f\n >>> rpn_loss_cls: %.6f\n '
-              '>>> rpn_loss_box: %.6f\n >>> loss_cls: %.6f\n >>> loss_box: %.6f\n >>> lr: %f' % \
-              (iter, max_iters, total_loss, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
+              '>>> rpn_loss_box: %.6f\n >>> loss_cls: %.6f\n >>> loss_box: %.6f\n >>> loss_tracks: %.6f\n >>> lr: %f' % \
+              (iter, max_iters, total_loss, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, tracks_loss, lr.eval()))
         print('speed: {:.3f}s / iter'.format(timer.average_time))
 
       # Snapshotting

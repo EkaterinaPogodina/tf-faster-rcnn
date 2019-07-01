@@ -24,16 +24,6 @@ from utils.visualization import draw_bounding_boxes
 from model.config import cfg
 
 
-def add_tracks_label(tracks_targets):
-  additional_label = []
-  for i in range(len(tracks_targets)):
-    if not sum(tracks_targets[i]):
-      additional_label.append([1])
-    else:
-      additional_label.append([0])
-  return np.hstack(tracks_targets, np.array(additional_label))
-
-
 class Network(object):
   def __init__(self):
     self._predictions = {}
@@ -222,7 +212,7 @@ class Network(object):
       prev_cls_prob, prev_bbox_pred = self._region_classification(fc7_2, is_training,
                                                         initializer, initializer_bbox, postfix='_prev')
 
-    tracks_pred = slim.fully_connected(tf.concat([fc7, fc7_2], axis=1), num_outputs=cfg.TRAIN.BATCH_SIZE+1)
+    tracks_pred = slim.fully_connected(tf.concat([fc7, fc7_2], axis=1), num_outputs=cfg.TRAIN.BATCH_SIZE)
     self._predictions['tracks'] = tracks_pred
 
     return rois, cls_prob, bbox_pred, prev_rois, prev_cls_prob, prev_bbox_pred
@@ -273,14 +263,12 @@ class Network(object):
     return self._smooth_l1_loss(bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights)
 
   def _get_rcnn_tracks_loss(self):
-    tracks = tf.tile(self._proposal_targets['tracks'], [1, cfg.TRAIN.BATCH_SIZE])
-    prev_tracks = tf.transpose(tf.tile(self._proposal_targets['tracks_prev'], [1, cfg.TRAIN.BATCH_SIZE]))
+    tracks = tf.tile(tf.reshape(self._proposal_targets['tracks'], [cfg.TRAIN.BATCH_SIZE, 1]), [1, cfg.TRAIN.BATCH_SIZE])
+    prev_tracks = tf.transpose(tf.tile(tf.reshape(self._proposal_targets['tracks_prev'], [cfg.TRAIN.BATCH_SIZE, 1]), [1, cfg.TRAIN.BATCH_SIZE]))
     tracks_targets = tf.equal(tracks, prev_tracks)
     tracks_pred = self._predictions['tracks']
 
-    tracks_targets = tf.py_func(add_tracks_label, [tracks_targets], [tf.int32])
-    # return tf.losses.softmax_cross_entropy(tracks_targets, tracks_pred)
-    return tracks_targets
+    return tf.losses.absolute_difference(tracks_targets, tracks_pred)
 
   def _add_losses(self):
     with tf.variable_scope('LOSS_' + self._tag) as scope:
