@@ -191,12 +191,12 @@ class Network(object):
     net_conv, net_conv2 = self._image_to_head(is_training)
     with tf.variable_scope(self._scope, self._scope):
       self._anchor_component()
-      rois = self._region_proposal(net_conv, is_training, initializer)
+      rois, rpn = self._region_proposal(net_conv, is_training, initializer)
       pool5 = self._crop_pool_layer(net_conv, rois, "pool5")
 
     with tf.variable_scope(self._prev_scope, self._prev_scope):
       self._anchor_component(prev=True)
-      prev_rois = self._region_proposal(net_conv, is_training, initializer, postfix='_prev')
+      prev_rois, prev_rpn = self._region_proposal(net_conv, is_training, initializer, postfix='_prev')
       prev_pool5 = self._crop_pool_layer(net_conv, rois, "pool5")
 
     fc7 = self._head_to_tail(pool5, is_training)
@@ -271,13 +271,14 @@ class Network(object):
     return np.hstack(tracks_targets, np.array(additional_label))
 
   def _get_rcnn_tracks_loss(self):
-    tracks = tf.tile(self._proposal_targets['tracks'], [1, cfg.TRAIN.BATCH_SIZE])
-    prev_tracks = tf.transpose(tf.tile(self._proposal_targets['tracks_prev'], [1, cfg.TRAIN.BATCH_SIZE]))
-    tracks_targets = tf.equal(tracks, prev_tracks)
-    tracks_pred = self._predictions['tracks']
-
-    tracks_targets = tf.py_func(self.add_tracks_label, [tracks_targets], [tf.int32])
-    return tf.losses.softmax_cross_entropy(tracks_targets, tracks_pred)
+    # tracks = tf.tile(self._proposal_targets['tracks'], [1, cfg.TRAIN.BATCH_SIZE])
+    # prev_tracks = tf.transpose(tf.tile(self._proposal_targets['tracks_prev'], [1, cfg.TRAIN.BATCH_SIZE]))
+    # tracks_targets = tf.equal(tracks, prev_tracks)
+    # tracks_pred = self._predictions['tracks']
+    #
+    # tracks_targets = tf.py_func(self.add_tracks_label, [tracks_targets], [tf.int32])
+    # return tf.losses.softmax_cross_entropy(tracks_targets, tracks_pred)
+    return
 
 
   def _add_losses(self):
@@ -354,7 +355,7 @@ class Network(object):
     self._predictions["rpn_bbox_pred" + postfix] = rpn_bbox_pred
     self._predictions["rois" + postfix] = rois
 
-    return rois
+    return rois, rpn
 
   def _region_classification(self, fc7, is_training, initializer, initializer_bbox, postfix=''):
     cls_score = slim.fully_connected(fc7, self._num_classes, 
