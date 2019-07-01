@@ -149,6 +149,7 @@ class Network(object):
       rois.set_shape([cfg.TRAIN.BATCH_SIZE, 5])
       roi_scores.set_shape([cfg.TRAIN.BATCH_SIZE])
       labels.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
+      tracks.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
       bbox_targets.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
       bbox_inside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
       bbox_outside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
@@ -209,6 +210,10 @@ class Network(object):
       # region classification
       prev_cls_prob, prev_bbox_pred = self._region_classification(fc7_2, is_training,
                                                         initializer, initializer_bbox, postfix='_prev')
+
+    tracks_pred = slim.fully_connected(tf.concat([fc7, fc7_2], axis=1), num_outputs=cfg.TRAIN.BATCH_SIZE)
+    print("***********", tracks_pred.shape)
+
     return rois, cls_prob, bbox_pred, prev_rois, prev_cls_prob, prev_bbox_pred
 
   def _smooth_l1_loss(self, bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights, sigma=1.0, dim=[1]):
@@ -255,6 +260,11 @@ class Network(object):
     bbox_inside_weights = self._proposal_targets['bbox_inside_weights' + postfix]
     bbox_outside_weights = self._proposal_targets['bbox_outside_weights' + postfix]
     return self._smooth_l1_loss(bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights)
+
+  def _get_rcnn_tracks_loss(self):
+    tracks = tf.tile(self._proposal_targets['tracks'], [1, cfg.TRAIN.BATCH_SIZE])
+    prev_tracks = tf.transpose(tf.tile(self._proposal_targets['tracks_prev'], [1, cfg.TRAIN.BATCH_SIZE]))
+    tracks_targets = tf.equal(tracks, prev_tracks)
 
   def _add_losses(self):
     with tf.variable_scope('LOSS_' + self._tag) as scope:
