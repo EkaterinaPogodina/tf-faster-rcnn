@@ -35,13 +35,12 @@ def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes):
     # not sure if it a wise appending, but anyway i am not using it
     all_scores = np.vstack((all_scores, zeros))
 
-  num_images = 1
-  rois_per_image = cfg.TRAIN.BATCH_SIZE / num_images
+  rois_per_image = cfg.TRAIN.BATCH_SIZE
   fg_rois_per_image = np.round(cfg.TRAIN.FG_FRACTION * rois_per_image)
 
   # Sample rois with classification labels and bounding box regression
   # targets
-  labels, rois, roi_scores, bbox_targets, bbox_inside_weights = _sample_rois(
+  labels, rois, roi_scores, bbox_targets, bbox_inside_weights, tracks = _sample_rois(
     all_rois, all_scores, gt_boxes, fg_rois_per_image,
     rois_per_image, _num_classes)
 
@@ -52,7 +51,7 @@ def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes):
   bbox_inside_weights = bbox_inside_weights.reshape(-1, _num_classes * 4)
   bbox_outside_weights = np.array(bbox_inside_weights > 0).astype(np.float32)
 
-  return rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights
+  return rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, tracks
 
 
 def _get_bbox_regression_labels(bbox_target_data, num_classes):
@@ -107,6 +106,7 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_ima
   gt_assignment = overlaps.argmax(axis=1)
   max_overlaps = overlaps.max(axis=1)
   labels = gt_boxes[gt_assignment, 4]
+  tracks = gt_boxes[gt_assignment, 5]
 
   # Select foreground RoIs as those with >= FG_THRESH overlap
   fg_inds = np.where(max_overlaps >= cfg.TRAIN.FG_THRESH)[0]
@@ -149,4 +149,4 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_ima
   bbox_targets, bbox_inside_weights = \
     _get_bbox_regression_labels(bbox_target_data, num_classes)
 
-  return labels, rois, roi_scores, bbox_targets, bbox_inside_weights
+  return labels, rois, roi_scores, bbox_targets, bbox_inside_weights, tracks

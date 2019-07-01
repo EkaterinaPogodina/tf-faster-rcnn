@@ -135,9 +135,14 @@ class Network(object):
 
   def _proposal_target_layer(self, rois, roi_scores, name, postfix=''):
     with tf.variable_scope(name + postfix) as scope:
-      rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights = tf.py_func(
+      if postfix:
+        gt_boxes = self._gt_boxes
+      else:
+        gt_boxes = self._gt_boxes_prev
+
+      rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, tracks = tf.py_func(
         proposal_target_layer,
-        [rois, roi_scores, self._gt_boxes, self._num_classes],
+        [rois, roi_scores, gt_boxes, self._num_classes],
         [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
         name="proposal_target")
 
@@ -279,7 +284,8 @@ class Network(object):
       self._losses['rpn_cross_entropy_prev'] = prev_rpn_cross_entropy
       self._losses['rpn_loss_box_prev'] = prev_rpn_loss_box
 
-      loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
+      loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box +\
+             prev_cross_entropy + prev_loss_box + prev_rpn_cross_entropy + prev_rpn_loss_box
       regularization_loss = tf.add_n(tf.losses.get_regularization_losses(), 'regu')
       self._losses['total_loss'] = loss + regularization_loss
 
