@@ -270,7 +270,6 @@ class Network(object):
         additional_label.append([0])
     return np.hstack(tracks_targets, np.array(additional_label))
 
-
   def _get_rcnn_tracks_loss(self):
     tracks = tf.tile(self._proposal_targets['tracks'], [1, cfg.TRAIN.BATCH_SIZE])
     prev_tracks = tf.transpose(tf.tile(self._proposal_targets['tracks_prev'], [1, cfg.TRAIN.BATCH_SIZE]))
@@ -278,7 +277,7 @@ class Network(object):
     tracks_pred = self._predictions['tracks']
 
     tracks_targets = tf.py_func(self.add_tracks_label, [tracks_targets], [tf.int32])
-    tf.losses.softmax_cross_entropy(tracks_targets, tracks_pred)
+    return tf.losses.softmax_cross_entropy(tracks_targets, tracks_pred)
 
 
   def _add_losses(self):
@@ -300,6 +299,9 @@ class Network(object):
       loss_box = self._get_rcnn_bbox_loss()
       prev_loss_box = self._get_rcnn_bbox_loss(postfix='_prev')
 
+      tracks_loss = self._get_rcnn_tracks_loss()
+
+      self._losses['tracks'] = tracks_loss
       self._losses['cross_entropy'] = cross_entropy
       self._losses['loss_box'] = loss_box
       self._losses['rpn_cross_entropy'] = rpn_cross_entropy
@@ -469,11 +471,12 @@ class Network(object):
     else:
       feed_dict.update({self._image_prev: blobs['data'],
                         self._gt_boxes_prev: blobs['gt_boxes']})
-    rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, _ = sess.run([self._losses["rpn_cross_entropy"],
+    rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, tracks_loss, _ = sess.run([self._losses["rpn_cross_entropy"],
                                                                         self._losses['rpn_loss_box'],
                                                                         self._losses['cross_entropy'],
                                                                         self._losses['loss_box'],
                                                                         self._losses['total_loss'],
+                                                                        self._losses['tracks'],
                                                                         train_op],
                                                                        feed_dict=feed_dict)
-    return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss
+    return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, tracks_loss
