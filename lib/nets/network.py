@@ -235,7 +235,7 @@ class Network(object):
 
       # RPN, class loss
       rpn_cross_entropy = self._get_rpn_class_loss()
-      prev_rpn_cross_entropy = self._get_rpn_class_loss(postfix='prev')
+      prev_rpn_cross_entropy = self._get_rpn_class_loss(postfix='_prev')
 
       # RPN, bbox loss
       rpn_bbox_pred = self._predictions['rpn_bbox_pred']
