@@ -103,10 +103,11 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_ima
   overlaps = bbox_overlaps(
     np.ascontiguousarray(all_rois[:, 1:5], dtype=np.float),
     np.ascontiguousarray(gt_boxes[:, :4], dtype=np.float))
-  gt_assignment = overlaps.argmax(axis=1)
-  max_overlaps = overlaps.max(axis=1)
+  gt_assignment = labels_overlaps.argmax(axis=1)
+  max_overlaps = labels_overlaps.max(axis=1)
+
   labels = gt_boxes[gt_assignment, 4]
-  tracks = gt_boxes[gt_assignment, 5]
+  tracks = gt_boxes[gt_tracks_assignment, 5]
 
   # Select foreground RoIs as those with >= FG_THRESH overlap
   fg_inds = np.where(max_overlaps >= cfg.TRAIN.FG_THRESH)[0]
@@ -138,8 +139,10 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_ima
   keep_inds = np.append(fg_inds, bg_inds)
   # Select sampled values from various arrays:
   labels = labels[keep_inds]
-  # Clamp labels for the background RoIs to 0
+  tracks = tracks[keep_inds]
+  # Clamp labels for the background RoIs to 0 and track ids to -1
   labels[int(fg_rois_per_image):] = 0
+  tracks[int(fg_rois_per_image):] = -1
   rois = all_rois[keep_inds]
   roi_scores = all_scores[keep_inds]
 
@@ -149,4 +152,5 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_ima
   bbox_targets, bbox_inside_weights = \
     _get_bbox_regression_labels(bbox_target_data, num_classes)
 
+  print("!!!!", tracks.shape)
   return labels, rois, roi_scores, bbox_targets, bbox_inside_weights, tracks
