@@ -189,7 +189,7 @@ class Network(object):
 
     with tf.variable_scope(self._prev_scope, self._prev_scope):
       self._anchor_component(prev=True)
-      prev_rois = self._region_proposal(net_conv, is_training, initializer)
+      prev_rois = self._region_proposal(net_conv, is_training, initializer, postfix='_prev')
       prev_pool5 = self._crop_pool_layer(net_conv, rois, "pool5")
 
     fc7 = self._head_to_tail(pool5, is_training)
@@ -230,6 +230,14 @@ class Network(object):
     return tf.reduce_mean(
       tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn_cls_score, labels=rpn_label))
 
+  def _get_rpn_bbox_loss(self, postfix=''):
+      rpn_bbox_pred = self._predictions['rpn_bbox_pred' + postfix]
+      rpn_bbox_targets = self._anchor_targets['rpn_bbox_targets' + postfix]
+      rpn_bbox_inside_weights = self._anchor_targets['rpn_bbox_inside_weights' + postfix]
+      rpn_bbox_outside_weights = self._anchor_targets['rpn_bbox_outside_weights' + postfix]
+      return self._smooth_l1_loss(rpn_bbox_pred, rpn_bbox_targets, rpn_bbox_inside_weights,
+                                          rpn_bbox_outside_weights, sigma=sigma_rpn, dim=[1, 2, 3])
+
   def _add_losses(self, sigma_rpn=3.0):
     with tf.variable_scope('LOSS_' + self._tag) as scope:
 
@@ -238,12 +246,8 @@ class Network(object):
       prev_rpn_cross_entropy = self._get_rpn_class_loss(postfix='_prev')
 
       # RPN, bbox loss
-      rpn_bbox_pred = self._predictions['rpn_bbox_pred']
-      rpn_bbox_targets = self._anchor_targets['rpn_bbox_targets']
-      rpn_bbox_inside_weights = self._anchor_targets['rpn_bbox_inside_weights']
-      rpn_bbox_outside_weights = self._anchor_targets['rpn_bbox_outside_weights']
-      rpn_loss_box = self._smooth_l1_loss(rpn_bbox_pred, rpn_bbox_targets, rpn_bbox_inside_weights,
-                                          rpn_bbox_outside_weights, sigma=sigma_rpn, dim=[1, 2, 3])
+      rpn_loss_box = self._get_rpn_bbox_loss()
+      prev_rpn_loss_box = self._get_rpn_bbox_loss(postfix='_prev')
 
       # RCNN, class loss
       cls_score = self._predictions["cls_score"]
