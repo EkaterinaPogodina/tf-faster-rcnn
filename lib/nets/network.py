@@ -23,6 +23,17 @@ from utils.visualization import draw_bounding_boxes
 
 from model.config import cfg
 
+
+def add_tracks_label(tracks_targets):
+  additional_label = []
+  for i in range(len(tracks_targets)):
+    if not sum(tracks_targets[i]):
+      additional_label.append([1])
+    else:
+      additional_label.append([0])
+  return np.hstack(tracks_targets, np.array(additional_label))
+
+
 class Network(object):
   def __init__(self):
     self._predictions = {}
@@ -261,25 +272,15 @@ class Network(object):
     bbox_outside_weights = self._proposal_targets['bbox_outside_weights' + postfix]
     return self._smooth_l1_loss(bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights)
 
-  def add_tracks_label(self, tracks_targets):
-    additional_label = []
-    for i in range(len(tracks_targets)):
-      if not sum(tracks_targets[i]):
-        additional_label.append([1])
-      else:
-        additional_label.append([0])
-    return np.hstack(tracks_targets, np.array(additional_label))
-
   def _get_rcnn_tracks_loss(self):
-    # tracks = tf.tile(self._proposal_targets['tracks'], [1, cfg.TRAIN.BATCH_SIZE])
-    # prev_tracks = tf.transpose(tf.tile(self._proposal_targets['tracks_prev'], [1, cfg.TRAIN.BATCH_SIZE]))
-    # tracks_targets = tf.equal(tracks, prev_tracks)
-    # tracks_pred = self._predictions['tracks']
-    #
-    # tracks_targets = tf.py_func(self.add_tracks_label, [tracks_targets], [tf.int32])
-    # return tf.losses.softmax_cross_entropy(tracks_targets, tracks_pred)
-    return
+    tracks = tf.tile(self._proposal_targets['tracks'], [1, cfg.TRAIN.BATCH_SIZE])
+    prev_tracks = tf.transpose(tf.tile(self._proposal_targets['tracks_prev'], [1, cfg.TRAIN.BATCH_SIZE]))
+    tracks_targets = tf.equal(tracks, prev_tracks)
+    tracks_pred = self._predictions['tracks']
 
+    tracks_targets = tf.py_func(add_tracks_label, [tracks_targets], [tf.int32])
+    # return tf.losses.softmax_cross_entropy(tracks_targets, tracks_pred)
+    return tracks_targets
 
   def _add_losses(self):
     with tf.variable_scope('LOSS_' + self._tag) as scope:
