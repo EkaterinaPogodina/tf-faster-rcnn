@@ -441,16 +441,23 @@ class Network(object):
     return feat
 
   # only useful during testing mode
-  def test_image(self, sess, image, im_info):
+  def test_image(self, sess, image, im_info, prev_image=None):
     feed_dict = {self._image: image,
                  self._im_info: im_info}
 
-    cls_score, cls_prob, bbox_pred, rois = sess.run([self._predictions["cls_score"],
+    if prev_image:
+      feed_dict.update({self._image_prev: prev_image})
+
+    else:
+      feed_dict.update({self._image_prev: image})
+
+    cls_score, cls_prob, bbox_pred, rois, tracks = sess.run([self._predictions["cls_score"],
                                                      self._predictions['cls_prob'],
                                                      self._predictions['bbox_pred'],
-                                                     self._predictions['rois']],
+                                                     self._predictions['rois'],
+                                                     self._predictions['tracks']],
                                                     feed_dict=feed_dict)
-    return cls_score, cls_prob, bbox_pred, rois
+    return cls_score, cls_prob, bbox_pred, rois, tracks
 
   def train_step(self, sess, blobs, train_op, blobs_prev=None):
     feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
