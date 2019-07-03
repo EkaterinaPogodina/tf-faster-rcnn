@@ -215,7 +215,7 @@ class Network(object):
     # tracks_pred = slim.fully_connected(tf.concat([fc7, fc7_2], axis=1), num_outputs=cfg.TRAIN.BATCH_SIZE)
     # self._predictions['tracks'] = tracks_pred
 
-    return rois, cls_prob, bbox_pred, prev_rois, prev_cls_prob, prev_bbox_pred
+    return rois, cls_prob, bbox_pred
 
   def _smooth_l1_loss(self, bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights, sigma=1.0, dim=[1]):
     sigma_2 = sigma ** 2
@@ -410,7 +410,7 @@ class Network(object):
                     weights_regularizer=weights_regularizer,
                     biases_regularizer=biases_regularizer, 
                     biases_initializer=tf.constant_initializer(0.0)): 
-      rois, cls_prob, bbox_pred, prev_rois, prev_cls_prob, prev_bbox_pred = self._build_network(training)
+      rois, cls_prob, bbox_pred = self._build_network(training)
     layers_to_output = {'rois': rois}
 
     if testing:
@@ -445,7 +445,7 @@ class Network(object):
     feed_dict = {self._image: image,
                  self._im_info: im_info}
 
-    if prev_image:
+    if prev_image is not None:
       feed_dict.update({self._image_prev: prev_image})
 
     else:
@@ -474,4 +474,4 @@ class Network(object):
                                                                         self._losses['total_loss'],
                                                                         train_op],
                                                                        feed_dict=feed_dict)
-    return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, tracks_loss
+    return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss
