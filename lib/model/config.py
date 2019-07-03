@@ -136,13 +136,13 @@ __C.TRAIN.RPN_CLOBBER_POSITIVES = False
 __C.TRAIN.RPN_FG_FRACTION = 0.5
 
 # Total number of examples
-__C.TRAIN.RPN_BATCHSIZE = 256
+__C.TRAIN.RPN_BATCHSIZE = 300
 
 # NMS threshold used on RPN proposals
 __C.TRAIN.RPN_NMS_THRESH = 0.7
 
 # Number of top scoring boxes to keep before apply NMS to RPN proposals
-__C.TRAIN.RPN_PRE_NMS_TOP_N = 12000
+__C.TRAIN.RPN_PRE_NMS_TOP_N = 6000
 
 # Number of top scoring boxes to keep after applying NMS to RPN proposals
 __C.TRAIN.RPN_POST_NMS_TOP_N = 2000

@@ -200,8 +200,7 @@ class stanford(imdb):
       if cls == '__background__':
         continue
       print('Writing {} stanford results file'.format(cls))
-      filename = self._get_voc_results_file_template().format(cls)
-      filename = '/home/ubuntu/tf-faster-rcnn/{}'.format(cls)
+      filename = '/root/{}'.format(cls)
       with open(filename, 'wt') as f:
         for im_ind, index in enumerate(self.image_index):
           dets = all_boxes[cls_ind][im_ind]
@@ -257,12 +256,9 @@ class stanford(imdb):
     print('-- Thanks, The Management')
     print('--------------------------------------------------------------')
 
-
   def evaluate_detections(self, all_boxes, output_dir):
     self._write_voc_results_file(all_boxes)
     self._do_python_eval(output_dir)
-    if self.config['matlab_eval']:
-      self._do_matlab_eval(output_dir)
     if self.config['cleanup']:
       for cls in self._classes:
         if cls == '__background__':
