@@ -256,19 +256,61 @@ def split_and_annotate(num_training_images=None, num_val_images=None, num_testin
 if __name__ == '__main__':
 
     # Uniform Sub Sampling : Split should contain only 0 / 1
-    videos_to_be_processed = {'deathCircle': {0: (1, 0, 0),
+    videos_to_be_processed = {'bookstore': {0: (1, 0, 0),
                                             1: (1, 0, 0),
                                             2: (1, 0, 0),
                                             3: (1, 0, 0),
-                                            4: (0, 1, 1)}
-                              }
+                                            4: (1, 0, 0),
+                                            5: (0, 1, 0),
+                                            6: (0, 0, 1)},
+
+                              'coupa': {0: (1, 0, 0),
+                                        1: (1, 0, 0),
+                                        2: (1, 0, 0),
+                                        3: (0, 1, 0)},
+
+                              'deathCircle': {0: (1, 0, 0),
+                                              1: (1, 0, 0),
+                                              2: (1, 0, 0),
+                                              3: (1, 0, 0),
+                                              4: (0, 1, 0)},
+
+                              'gates': {0: (1, 0, 0),
+                                        1: (1, 0, 0),
+                                        2: (1, 0, 0),
+                                        3: (1, 0, 0),
+                                        4: (1, 0, 0),
+                                        5: (1, 0, 0),
+                                        6: (1, 0, 0),
+                                        7: (1, 0, 0),
+                                        8: (0, 1, 0)},
+
+                              'little': {0: (1, 0, 0),
+                                         1: (1, 0, 0),
+                                         2: (1, 0, 0),
+                                         3: (0, 1, 0)},
+
+                              'nexus': {0: (1, 0, 0),
+                                        1: (1, 0, 0),
+                                        2: (1, 0, 0),
+                                        3: (1, 0, 0),
+                                        4: (1, 0, 0),
+                                        5: (1, 0, 0),
+                                        6: (1, 0, 0),
+                                        7: (1, 0, 0),
+                                        8: (1, 0, 0),
+                                        9: (1, 0, 0),
+                                        10: (1, 0, 0),
+                                        11: (0, 1, 0)
+                                        }
+                    }
 
     num_training_images = 100000
     num_val_images = 10000
     num_testing_images = 0
 
     dataset_path = '/Users/ekaterinapogodina/Downloads/stanford_campus_dataset-2'
-    destination_folder_name = 'STANFORDdevkit'
+    destination_folder_name = '../STANFORDdevkit2'
     destination_path = os.path.join(dataset_path, destination_folder_name)
 
     split_and_annotate(num_training_images, num_val_images, num_testing_images)

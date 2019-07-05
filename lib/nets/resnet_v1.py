@@ -50,7 +50,6 @@ class resnetv1(Network):
     self._feat_compress = [1. / float(self._feat_stride[0]), ]
     self._num_layers = num_layers
     self._scope = 'resnet_v1_%d' % num_layers
-    self._prev_scope = 'resnet_v2_%d' % num_layers
     self._decide_blocks()
 
   def _crop_pool_layer(self, bottom, rois, name):
@@ -84,18 +83,13 @@ class resnetv1(Network):
       net = tf.pad(net, [[0, 0], [1, 1], [1, 1], [0, 0]])
       net = slim.max_pool2d(net, [3, 3], stride=2, padding='VALID', scope='pool1')
 
-    with tf.variable_scope(self._prev_scope, self._prev_scope):
-      net2 = resnet_utils.conv2d_same(self._image_prev, 64, 7, stride=2, scope='conv1')
-      net2 = tf.pad(net2, [[0, 0], [1, 1], [1, 1], [0, 0]])
-      net2 = slim.max_pool2d(net2, [3, 3], stride=2, padding='VALID', scope='pool1')
-
-    return net, net2
+    return net
 
   def _image_to_head(self, is_training, reuse=None):
     assert (0 <= cfg.RESNET.FIXED_BLOCKS <= 3)
     # Now the base is always fixed during training
     with slim.arg_scope(resnet_arg_scope(is_training=False)):
-      net_conv, net_conv2 = self._build_base()
+      net_conv  = self._build_base()
     if cfg.RESNET.FIXED_BLOCKS > 0:
       with slim.arg_scope(resnet_arg_scope(is_training=False)):
         net_conv, _ = resnet_v1.resnet_v1(net_conv,
@@ -104,14 +98,6 @@ class resnetv1(Network):
                                            include_root_block=False,
                                            reuse=reuse,
                                            scope=self._scope)
-
-      # with slim.arg_scope(resnet_arg_scope(is_training=False)):
-      #   net_conv2, _ = resnet_v1.resnet_v1(net_conv2,
-      #                                       self._blocks2[0:cfg.RESNET.FIXED_BLOCKS],
-      #                                       global_pool=False,
-      #                                       include_root_block=False,
-      #                                       reuse=reuse,
-      #                                       scope=self._prev_scope)
 
     if cfg.RESNET.FIXED_BLOCKS < 3:
       with slim.arg_scope(resnet_arg_scope(is_training=is_training)):
@@ -122,35 +108,18 @@ class resnetv1(Network):
                                            reuse=reuse,
                                            scope=self._scope)
 
-      # net_conv2, _ = resnet_v1.resnet_v1(net_conv2,
-      #                                     self._blocks2[cfg.RESNET.FIXED_BLOCKS:-1],
-      #                                     global_pool=False,
-      #                                     include_root_block=False,
-      #                                     reuse=reuse,
-      #                                     scope=self._prev_scope)
-
     self._layers['head'] = net_conv
-    # self._layers['head_prev'] = net_conv2
 
     return net_conv
 
-  def _head_to_tail(self, pool5, is_training, reuse=None, prev=False):
-    if not prev:
-      with slim.arg_scope(resnet_arg_scope(is_training=is_training)):
-        fc7, _ = resnet_v1.resnet_v1(pool5,
-                                   self._blocks[-1:],
-                                   global_pool=False,
-                                   include_root_block=False,
-                                   reuse=reuse,
-                                   scope=self._scope)
-    # else:
-    #   with slim.arg_scope(resnet_arg_scope(is_training=is_training)):
-    #     fc7, _ = resnet_v1.resnet_v1(pool5,
-    #                                      self._blocks2[-1:],
-    #                                      global_pool=False,
-    #                                      include_root_block=False,
-    #                                      reuse=reuse,
-    #                                      scope=self._prev_scope)
+  def _head_to_tail(self, pool5, is_training, reuse=None):
+    with slim.arg_scope(resnet_arg_scope(is_training=is_training)):
+      fc7, _ = resnet_v1.resnet_v1(pool5,
+                               self._blocks[-1:],
+                               global_pool=False,
+                               include_root_block=False,
+                               reuse=reuse,
+                               scope=self._scope)
 
     fc7 = tf.reduce_mean(fc7, axis=[1, 2])
     return fc7
@@ -160,11 +129,6 @@ class resnetv1(Network):
                       resnet_v1_block('block2', base_depth=128, num_units=4, stride=2),
                       resnet_v1_block('block3', base_depth=256, num_units=23, stride=1),
                       resnet_v1_block('block4', base_depth=512, num_units=3, stride=1)]
-
-    # self._blocks2 = [resnet_v1_block('block1_prev', base_depth=64, num_units=3, stride=2),
-    #                 resnet_v1_block('block2_prev', base_depth=128, num_units=4, stride=2),
-    #                 resnet_v1_block('block3_prev', base_depth=256, num_units=23, stride=1),
-    #                 resnet_v1_block('block4_prev', base_depth=512, num_units=3, stride=1)]
 
 
   def get_variables_to_restore(self, variables, var_keep_dic):

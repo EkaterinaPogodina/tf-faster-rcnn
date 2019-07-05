@@ -113,7 +113,7 @@ class Network(object):
   def _dropout_layer(self, bottom, name, ratio=0.5):
     return tf.nn.dropout(bottom, ratio, name=name)
 
-  def _anchor_target_layer(self, rpn_cls_score, name, postfix=''):
+  def _anchor_target_layer(self, rpn_cls_score, name):
     with tf.variable_scope(name) as scope:
       rpn_labels, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights = tf.py_func(
         anchor_target_layer,
@@ -127,21 +127,19 @@ class Network(object):
       rpn_bbox_outside_weights.set_shape([1, None, None, self._num_anchors * 4])
 
       rpn_labels = tf.to_int32(rpn_labels, name="to_int32")
-      self._anchor_targets['rpn_labels' + postfix] = rpn_labels
-      self._anchor_targets['rpn_bbox_targets' + postfix] = rpn_bbox_targets
-      self._anchor_targets['rpn_bbox_inside_weights' + postfix] = rpn_bbox_inside_weights
-      self._anchor_targets['rpn_bbox_outside_weights' + postfix] = rpn_bbox_outside_weights
+      self._anchor_targets['rpn_labels'] = rpn_labels
+      self._anchor_targets['rpn_bbox_targets'] = rpn_bbox_targets
+      self._anchor_targets['rpn_bbox_inside_weights'] = rpn_bbox_inside_weights
+      self._anchor_targets['rpn_bbox_outside_weights'] = rpn_bbox_outside_weights
 
     return rpn_labels
 
-  def _proposal_target_layer(self, rois, roi_scores, name, postfix=''):
-    with tf.variable_scope(name + postfix) as scope:
-      if postfix:
-        gt_boxes = self._gt_boxes
-      else:
-        gt_boxes = self._gt_boxes_prev
+  def _proposal_target_layer(self, rois, roi_scores, name):
+    with tf.variable_scope(name) as scope:
 
-      rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, tracks = tf.py_func(
+      gt_boxes = self._gt_boxes
+
+      rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights= tf.py_func(
         proposal_target_layer,
         [rois, roi_scores, gt_boxes, self._num_classes],
         [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
@@ -150,21 +148,18 @@ class Network(object):
       rois.set_shape([cfg.TRAIN.BATCH_SIZE, 5])
       roi_scores.set_shape([cfg.TRAIN.BATCH_SIZE])
       labels.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
-      tracks.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
       bbox_targets.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
       bbox_inside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
       bbox_outside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
 
-      self._proposal_targets['rois' + postfix] = rois
-      self._proposal_targets['labels' + postfix] = tf.to_int32(labels, name="to_int32")
-      self._proposal_targets['bbox_targets' + postfix] = bbox_targets
-      self._proposal_targets['bbox_inside_weights' + postfix] = bbox_inside_weights
-      self._proposal_targets['bbox_outside_weights' + postfix] = bbox_outside_weights
-      # self._proposal_targets['tracks' + postfix] = tracks
-
+      self._proposal_targets['rois'] = rois
+      self._proposal_targets['labels'] = tf.to_int32(labels, name="to_int32")
+      self._proposal_targets['bbox_targets'] = bbox_targets
+      self._proposal_targets['bbox_inside_weights'] = bbox_inside_weights
+      self._proposal_targets['bbox_outside_weights'] = bbox_outside_weights
       return rois, roi_scores
 
-  def _anchor_component(self, prev=False):
+  def _anchor_component(self):
 
     with tf.variable_scope('ANCHOR_' + self._tag) as scope:
       # just to get the shape right
@@ -176,13 +171,8 @@ class Network(object):
                                           [tf.float32, tf.int32], name="generate_anchors")
       anchors.set_shape([None, 4])
       anchor_length.set_shape([])
-      if not prev:
-        self._anchors = anchors
-        self._anchor_length = anchor_length
-
-      else:
-        self._prev_anchors = anchors
-        self._prev_anchor_length = anchor_length
+      self._anchors = anchors
+      self._anchor_length = anchor_length
 
   def _build_network(self, is_training=True):
     # select initializers
@@ -195,25 +185,11 @@ class Network(object):
       rois, rpn = self._region_proposal(net_conv, is_training, initializer)
       pool5 = self._crop_pool_layer(net_conv, rois, "pool5")
 
-    # with tf.variable_scope(self._prev_scope, self._prev_scope):
-    #   self._anchor_component(prev=True)
-    #   prev_rois, prev_rpn = self._region_proposal(net_conv, is_training, initializer, postfix='_prev')
-    #   prev_pool5 = self._crop_pool_layer(net_conv, rois, "pool5")
-
     fc7 = self._head_to_tail(pool5, is_training)
-    # fc7_2 = self._head_to_tail(prev_pool5, is_training, prev=True)
     with tf.variable_scope(self._scope, self._scope):
       # region classification
       cls_prob, bbox_pred = self._region_classification(fc7, is_training, 
                                                         initializer, initializer_bbox)
-
-    # with tf.variable_scope(self._prev_scope, self._prev_scope):
-    #   # region classification
-    #   prev_cls_prob, prev_bbox_pred = self._region_classification(fc7_2, is_training,
-    #                                                     initializer, initializer_bbox, postfix='_prev')
-    #
-    # tracks_pred = slim.fully_connected(tf.concat([fc7, fc7_2], axis=1), num_outputs=cfg.TRAIN.BATCH_SIZE)
-    # self._predictions['tracks'] = tracks_pred
 
     return rois, cls_prob, bbox_pred
 
@@ -232,9 +208,9 @@ class Network(object):
     ))
     return loss_box
 
-  def _get_rpn_class_loss(self, postfix=''):
-    rpn_cls_score = tf.reshape(self._predictions['rpn_cls_score_reshape' + postfix], [-1, 2])
-    rpn_label = tf.reshape(self._anchor_targets['rpn_labels' + postfix], [-1])
+  def _get_rpn_class_loss(self):
+    rpn_cls_score = tf.reshape(self._predictions['rpn_cls_score_reshape'], [-1, 2])
+    rpn_label = tf.reshape(self._anchor_targets['rpn_labels'], [-1])
     rpn_select = tf.where(tf.not_equal(rpn_label, -1))
     rpn_cls_score = tf.reshape(tf.gather(rpn_cls_score, rpn_select), [-1, 2])
     rpn_label = tf.reshape(tf.gather(rpn_label, rpn_select), [-1])
@@ -242,111 +218,90 @@ class Network(object):
     return tf.reduce_mean(
       tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn_cls_score, labels=rpn_label))
 
-  def _get_rpn_bbox_loss(self, sigma_rpn=3.0, postfix=''):
-    rpn_bbox_pred = self._predictions['rpn_bbox_pred' + postfix]
-    rpn_bbox_targets = self._anchor_targets['rpn_bbox_targets' + postfix]
-    rpn_bbox_inside_weights = self._anchor_targets['rpn_bbox_inside_weights' + postfix]
-    rpn_bbox_outside_weights = self._anchor_targets['rpn_bbox_outside_weights' + postfix]
+  def _get_rpn_bbox_loss(self, sigma_rpn=3.0):
+    rpn_bbox_pred = self._predictions['rpn_bbox_pred']
+    rpn_bbox_targets = self._anchor_targets['rpn_bbox_targets']
+    rpn_bbox_inside_weights = self._anchor_targets['rpn_bbox_inside_weights']
+    rpn_bbox_outside_weights = self._anchor_targets['rpn_bbox_outside_weights']
     return self._smooth_l1_loss(rpn_bbox_pred, rpn_bbox_targets, rpn_bbox_inside_weights,
                                           rpn_bbox_outside_weights, sigma=sigma_rpn, dim=[1, 2, 3])
 
-  def _get_rcnn_class_loss(self, postfix=''):
-    cls_score = self._predictions["cls_score" + postfix]
-    label = tf.reshape(self._proposal_targets["labels" + postfix], [-1])
+  def _get_rcnn_class_loss(self):
+    cls_score = self._predictions["cls_score"]
+    label = tf.reshape(self._proposal_targets["labels"], [-1])
     return tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=cls_score, labels=label))
 
-  def _get_rcnn_bbox_loss(self, postfix=''):
-    bbox_pred = self._predictions['bbox_pred' + postfix]
-    bbox_targets = self._proposal_targets['bbox_targets' + postfix]
-    bbox_inside_weights = self._proposal_targets['bbox_inside_weights' + postfix]
-    bbox_outside_weights = self._proposal_targets['bbox_outside_weights' + postfix]
+  def _get_rcnn_bbox_loss(self):
+    bbox_pred = self._predictions['bbox_pred']
+    bbox_targets = self._proposal_targets['bbox_targets']
+    bbox_inside_weights = self._proposal_targets['bbox_inside_weights']
+    bbox_outside_weights = self._proposal_targets['bbox_outside_weights']
     return self._smooth_l1_loss(bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights)
-
-  def _get_rcnn_tracks_loss(self):
-    tracks = tf.tile(tf.reshape(self._proposal_targets['tracks'], [cfg.TRAIN.BATCH_SIZE, 1]), [1, cfg.TRAIN.BATCH_SIZE])
-    prev_tracks = tf.transpose(tf.tile(tf.reshape(self._proposal_targets['tracks_prev'], [cfg.TRAIN.BATCH_SIZE, 1]), [1, cfg.TRAIN.BATCH_SIZE]))
-    tracks_targets = tf.equal(tracks, prev_tracks)
-    tracks_pred = self._predictions['tracks']
-
-    return tf.losses.absolute_difference(tracks_targets, tracks_pred)
 
   def _add_losses(self):
     with tf.variable_scope('LOSS_' + self._tag) as scope:
 
       # RPN, class loss
       rpn_cross_entropy = self._get_rpn_class_loss()
-      # prev_rpn_cross_entropy = self._get_rpn_class_loss(postfix='_prev')
 
       # RPN, bbox loss
       rpn_loss_box = self._get_rpn_bbox_loss()
-      # prev_rpn_loss_box = self._get_rpn_bbox_loss(postfix='_prev')
 
       # RCNN, class loss
       cross_entropy = self._get_rcnn_class_loss()
-      # prev_cross_entropy = self._get_rcnn_class_loss(postfix='_prev')
 
       # RCNN, bbox loss
       loss_box = self._get_rcnn_bbox_loss()
-      # prev_loss_box = self._get_rcnn_bbox_loss(postfix='_prev')
 
-      # tracks_loss = self._get_rcnn_tracks_loss()
-
-      # self._losses['tracks'] = tracks_loss
       self._losses['cross_entropy'] = cross_entropy
       self._losses['loss_box'] = loss_box
       self._losses['rpn_cross_entropy'] = rpn_cross_entropy
       self._losses['rpn_loss_box'] = rpn_loss_box
 
-      # self._losses['cross_entropy_prev'] = prev_cross_entropy
-      # self._losses['loss_box_prev'] = prev_loss_box
-      # self._losses['rpn_cross_entropy_prev'] = prev_rpn_cross_entropy
-      # self._losses['rpn_loss_box_prev'] = prev_rpn_loss_box
-
       loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
-             # prev_cross_entropy + prev_loss_box + prev_rpn_cross_entropy + prev_rpn_loss_box
       regularization_loss = tf.add_n(tf.losses.get_regularization_losses(), 'regu')
       self._losses['total_loss'] = loss + regularization_loss
 
     return loss
 
-  def _region_proposal(self, net_conv, is_training, initializer, postfix=''):
+  def _region_proposal(self, net_conv, is_training, initializer):
     rpn = slim.conv2d(net_conv, cfg.RPN_CHANNELS, [3, 3], trainable=is_training, weights_initializer=initializer,
-                        scope="rpn_conv/3x3" + postfix)
+                        scope="rpn_conv/3x3")
     rpn_cls_score = slim.conv2d(rpn, self._num_anchors * 2, [1, 1], trainable=is_training,
                                 weights_initializer=initializer,
-                                padding='VALID', activation_fn=None, scope='rpn_cls_score' + postfix)
+                                padding='VALID', activation_fn=None, scope='rpn_cls_score')
     # change it so that the score has 2 as its channel size
-    rpn_cls_score_reshape = self._reshape_layer(rpn_cls_score, 2, 'rpn_cls_score_reshape' + postfix)
-    rpn_cls_prob_reshape = self._softmax_layer(rpn_cls_score_reshape, "rpn_cls_prob_reshape" + postfix)
-    rpn_cls_pred = tf.argmax(tf.reshape(rpn_cls_score_reshape, [-1, 2]), axis=1, name="rpn_cls_pred" + postfix)
-    rpn_cls_prob = self._reshape_layer(rpn_cls_prob_reshape, self._num_anchors * 2, "rpn_cls_prob" + postfix)
+    rpn_cls_score_reshape = self._reshape_layer(rpn_cls_score, 2, 'rpn_cls_score_reshape')
+    rpn_cls_prob_reshape = self._softmax_layer(rpn_cls_score_reshape, "rpn_cls_prob_reshape")
+    rpn_cls_pred = tf.argmax(tf.reshape(rpn_cls_score_reshape, [-1, 2]), axis=1, name="rpn_cls_pred")
+    rpn_cls_prob = self._reshape_layer(rpn_cls_prob_reshape, self._num_anchors * 2, "rpn_cls_prob")
     rpn_bbox_pred = slim.conv2d(rpn, self._num_anchors * 4, [1, 1], trainable=is_training,
                                 weights_initializer=initializer,
-                                padding='VALID', activation_fn=None, scope='rpn_bbox_pred' + postfix)
+                                padding='VALID', activation_fn=None, scope='rpn_bbox_pred')
     if is_training:
-      rois, roi_scores = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois" + postfix)
-      rpn_labels = self._anchor_target_layer(rpn_cls_score, name="anchor" + postfix, postfix=postfix)
+      rois, roi_scores = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois")
+      rpn_labels = self._anchor_target_layer(rpn_cls_score, name="anchor",)
       # Try to have a deterministic order for the computing graph, for reproducibility
       with tf.control_dependencies([rpn_labels]):
-        rois, _ = self._proposal_target_layer(rois, roi_scores, "rpn_rois", postfix=postfix)
+        rois, _ = self._proposal_target_layer(rois, roi_scores, "rpn_rois")
     else:
       if cfg.TEST.MODE == 'nms':
-        rois, _ = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois" + postfix)
+        rois, _ = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois")
       elif cfg.TEST.MODE == 'top':
-        rois, _ = self._proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, "rois" + postfix)
+        rois, _ = self._proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, "rois")
       else:
         raise NotImplementedError
 
-    self._predictions["rpn_cls_score" + postfix] = rpn_cls_score
-    self._predictions["rpn_cls_score_reshape" + postfix] = rpn_cls_score_reshape
-    self._predictions["rpn_cls_prob" + postfix] = rpn_cls_prob
-    self._predictions["rpn_cls_pred" + postfix] = rpn_cls_pred
-    self._predictions["rpn_bbox_pred" + postfix] = rpn_bbox_pred
-    self._predictions["rois" + postfix] = rois
+    self._predictions["rpn_cls_score"] = rpn_cls_score
+    self._predictions["rpn_cls_score_reshape"] = rpn_cls_score_reshape
+    self._predictions["rpn_cls_prob"] = rpn_cls_prob
+    self._predictions["rpn_cls_pred"] = rpn_cls_pred
+    self._predictions["rpn_bbox_pred"] = rpn_bbox_pred
+    self._predictions["rois"] = rois
 
     return rois, rpn
 
-  def _region_classification(self, fc7, is_training, initializer, initializer_bbox, postfix=''):
+  def _region_classification(self, fc7, is_training, initializer, initializer_bbox):
     cls_score = slim.fully_connected(fc7, self._num_classes, 
                                        weights_initializer=initializer,
                                        trainable=is_training,
@@ -358,26 +313,24 @@ class Network(object):
                                      trainable=is_training,
                                      activation_fn=None, scope='bbox_pred')
 
-    self._predictions["cls_score" + postfix] = cls_score
-    self._predictions["cls_pred" + postfix] = cls_pred
-    self._predictions["cls_prob" + postfix] = cls_prob
-    self._predictions["bbox_pred" + postfix] = bbox_pred
+    self._predictions["cls_score"] = cls_score
+    self._predictions["cls_pred"] = cls_pred
+    self._predictions["cls_prob"] = cls_prob
+    self._predictions["bbox_pred"] = bbox_pred
 
     return cls_prob, bbox_pred
 
   def _image_to_head(self, is_training, reuse=None):
     raise NotImplementedError
 
-  def _head_to_tail(self, pool5, is_training, reuse=None, prev=False):
+  def _head_to_tail(self, pool5, is_training, reuse=None):
     raise NotImplementedError
 
   def create_architecture(self, mode, num_classes, tag=None,
                           anchor_scales=(8, 16, 32), anchor_ratios=(0.5, 1, 2)):
     self._image = tf.placeholder(tf.float32, shape=[1, None, None, 3])
-    self._image_prev = tf.placeholder(tf.float32, shape=[1, None, None, 3])
     self._im_info = tf.placeholder(tf.float32, shape=[3])
     self._gt_boxes = tf.placeholder(tf.float32, shape=[None, 6])
-    self._gt_boxes_prev = tf.placeholder(tf.float32, shape=[None, 6])
     self._tag = tag
 
     self._num_classes = num_classes
@@ -441,15 +394,9 @@ class Network(object):
     return feat
 
   # only useful during testing mode
-  def test_image(self, sess, image, im_info, prev_image=None):
+  def test_image(self, sess, image, im_info):
     feed_dict = {self._image: image,
                  self._im_info: im_info}
-
-    if prev_image is not None:
-      feed_dict.update({self._image_prev: prev_image})
-
-    else:
-      feed_dict.update({self._image_prev: image})
 
     cls_score, cls_prob, bbox_pred, rois = sess.run([self._predictions["cls_score"],
                                                      self._predictions['cls_prob'],
@@ -458,15 +405,10 @@ class Network(object):
                                                     feed_dict=feed_dict)
     return cls_score, cls_prob, bbox_pred, rois
 
-  def train_step(self, sess, blobs, train_op, blobs_prev=None):
+  def train_step(self, sess, blobs, train_op):
     feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
                  self._gt_boxes: blobs['gt_boxes']}
-    if blobs_prev is not None:
-      feed_dict.update({self._image_prev: blobs_prev['data'],
-                        self._gt_boxes_prev: blobs_prev['gt_boxes']})
-    else:
-      feed_dict.update({self._image_prev: blobs['data'],
-                        self._gt_boxes_prev: blobs['gt_boxes']})
+
     rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, _ = sess.run([self._losses["rpn_cross_entropy"],
                                                                         self._losses['rpn_loss_box'],
                                                                         self._losses['cross_entropy'],
