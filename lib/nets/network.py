@@ -292,7 +292,7 @@ class Network(object):
 
       # tracks_loss = self._get_rcnn_tracks_loss()
 
-      self._losses['tracks'] = tracks_loss
+      # self._losses['tracks'] = tracks_loss
       self._losses['cross_entropy'] = cross_entropy
       self._losses['loss_box'] = loss_box
       self._losses['rpn_cross_entropy'] = rpn_cross_entropy
@@ -440,7 +440,7 @@ class Network(object):
     feed_dict = {self._image: image,
                  self._im_info: im_info}
 
-    if prev_image:
+    if prev_image is not None:
       feed_dict.update({self._image_prev: prev_image})
 
     else:

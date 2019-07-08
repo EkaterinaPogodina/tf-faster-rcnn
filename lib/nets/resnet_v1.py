@@ -143,14 +143,14 @@ class resnetv1(Network):
                                    include_root_block=False,
                                    reuse=reuse,
                                    scope=self._scope)
-    else:
-      with slim.arg_scope(resnet_arg_scope(is_training=is_training)):
-        fc7, _ = resnet_v1.resnet_v1(pool5,
-                                         self._blocks2[-1:],
-                                         global_pool=False,
-                                         include_root_block=False,
-                                         reuse=reuse,
-                                         scope=self._prev_scope)
+    # else:
+    #   with slim.arg_scope(resnet_arg_scope(is_training=is_training)):
+    #     fc7, _ = resnet_v1.resnet_v1(pool5,
+    #                                      self._blocks2[-1:],
+    #                                      global_pool=False,
+    #                                      include_root_block=False,
+    #                                      reuse=reuse,
+    #                                      scope=self._prev_scope)
 
     fc7 = tf.reduce_mean(fc7, axis=[1, 2])
     return fc7
