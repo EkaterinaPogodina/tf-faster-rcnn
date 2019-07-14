@@ -33,8 +33,7 @@ class stanford(imdb):
     self._devkit_path = self._get_default_path()
     self._data_path = self._devkit_path
     self._classes = ('__background__',  # always index 0
-                     'bicyclist', 'pedestrian', 'skateboarder', 'cart',
-                     'bus', 'biker', 'skater', 'car')
+                     'pedestrian', 'car')
     self._class_to_ind = dict(list(zip(self.classes, list(range(self.num_classes)))))
     self._image_ext = '.jpg'
     self._image_index = self._load_image_set_index()
@@ -200,7 +199,7 @@ class stanford(imdb):
       if cls == '__background__':
         continue
       print('Writing {} stanford results file'.format(cls))
-      filename = '/root/{}'.format(cls)
+      filename = '/root/results/{}'.format(cls)
       with open(filename, 'wt') as f:
         for im_ind, index in enumerate(self.image_index):
           dets = all_boxes[cls_ind][im_ind]
