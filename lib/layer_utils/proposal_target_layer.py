@@ -51,7 +51,8 @@ def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes):
   bbox_inside_weights = bbox_inside_weights.reshape(-1, _num_classes * 4)
   bbox_outside_weights = np.array(bbox_inside_weights > 0).astype(np.float32)
 
-  return rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, tracks
+  # return rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, tracks
+  return rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights
 
 
 def _get_bbox_regression_labels(bbox_target_data, num_classes):

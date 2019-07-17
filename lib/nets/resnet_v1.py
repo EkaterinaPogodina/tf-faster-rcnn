@@ -50,7 +50,7 @@ class resnetv1(Network):
     self._feat_compress = [1. / float(self._feat_stride[0]), ]
     self._num_layers = num_layers
     self._scope = 'resnet_v1_%d' % num_layers
-    self._prev_scope = 'resnet_v2_%d' % num_layers
+    # self._prev_scope = 'resnet_v2_%d' % num_layers
     self._decide_blocks()
 
   def _crop_pool_layer(self, bottom, rois, name):

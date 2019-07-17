@@ -141,16 +141,22 @@ class Network(object):
       # else:
       #   gt_boxes = self._gt_boxes_prev
 
-      rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, tracks = tf.py_func(
+      # rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, tracks = tf.py_func(
+      #   proposal_target_layer,
+      #   [rois, roi_scores, gt_boxes, self._num_classes],
+      #   [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
+      #   name="proposal_target")
+
+      rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights = tf.py_func(
         proposal_target_layer,
         [rois, roi_scores, gt_boxes, self._num_classes],
-        [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
+        [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
         name="proposal_target")
 
       rois.set_shape([cfg.TRAIN.BATCH_SIZE, 5])
       roi_scores.set_shape([cfg.TRAIN.BATCH_SIZE])
       labels.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
-      tracks.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
+      # tracks.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
       bbox_targets.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
       bbox_inside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
       bbox_outside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
@@ -160,7 +166,7 @@ class Network(object):
       self._proposal_targets['bbox_targets' + postfix] = bbox_targets
       self._proposal_targets['bbox_inside_weights' + postfix] = bbox_inside_weights
       self._proposal_targets['bbox_outside_weights' + postfix] = bbox_outside_weights
-      self._proposal_targets['tracks' + postfix] = tracks
+      # self._proposal_targets['tracks' + postfix] = tracks
 
       return rois, roi_scores
 
@@ -176,13 +182,13 @@ class Network(object):
                                           [tf.float32, tf.int32], name="generate_anchors")
       anchors.set_shape([None, 4])
       anchor_length.set_shape([])
-      if not prev:
-        self._anchors = anchors
-        self._anchor_length = anchor_length
+      # if not prev:
+      self._anchors = anchors
+      self._anchor_length = anchor_length
 
-      else:
-        self._prev_anchors = anchors
-        self._prev_anchor_length = anchor_length
+      # else:
+      #   self._prev_anchors = anchors
+      #   self._prev_anchor_length = anchor_length
 
   def _build_network(self, is_training=True):
     # select initializers
