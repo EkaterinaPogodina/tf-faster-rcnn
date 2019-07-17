@@ -259,7 +259,7 @@ class SolverWrapper(object):
     stepsizes.append(max_iters)
     stepsizes.reverse()
     next_stepsize = stepsizes.pop()
-    prev_blobs = None
+    # prev_blobs = None
     while iter < max_iters + 1:
       # Learning rate
       if iter == next_stepsize + 1:
@@ -277,10 +277,10 @@ class SolverWrapper(object):
       #     self.net.train_step(sess, blobs, train_op, prev_blobs)
 
       rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss = \
-          self.net.train_step(sess, blobs, train_op, prev_blobs)
+          self.net.train_step(sess, blobs, train_op)
 
       timer.toc()
-      prev_blobs = blobs
+      # prev_blobs = blobs
 
       # Display training information
       if iter % 10 == 0:

@@ -381,7 +381,7 @@ class Network(object):
   def create_architecture(self, mode, num_classes, tag=None,
                           anchor_scales=(8, 16, 32), anchor_ratios=(0.5, 1, 2)):
     self._image = tf.placeholder(tf.float32, shape=[1, None, None, 3])
-    self._image_prev = tf.placeholder(tf.float32, shape=[1, None, None, 3])
+    # self._image_prev = tf.placeholder(tf.float32, shape=[1, None, None, 3])
     self._im_info = tf.placeholder(tf.float32, shape=[3])
     self._gt_boxes = tf.placeholder(tf.float32, shape=[None, 6])
     # self._gt_boxes_prev = tf.placeholder(tf.float32, shape=[None, 6])
@@ -446,11 +446,11 @@ class Network(object):
     feed_dict = {self._image: image,
                  self._im_info: im_info}
 
-    if prev_image is not None:
-      feed_dict.update({self._image_prev: prev_image})
-
-    else:
-      feed_dict.update({self._image_prev: image})
+    # if prev_image is not None:
+    #   feed_dict.update({self._image_prev: prev_image})
+    #
+    # else:
+    #   feed_dict.update({self._image_prev: image})
 
     cls_score, cls_prob, bbox_pred, rois = sess.run([self._predictions["cls_score"],
                                                      self._predictions['cls_prob'],
