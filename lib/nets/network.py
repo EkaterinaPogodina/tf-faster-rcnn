@@ -357,13 +357,13 @@ class Network(object):
     bbox_outside_weights = self._proposal_targets['bbox_outside_weights']
     return self._smooth_l1_loss(bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights)
 
-  def _get_rcnn_tracks_loss(self):
-    tracks = tf.tile(tf.reshape(self._proposal_targets['tracks'], [cfg.TRAIN.BATCH_SIZE, 1]), [1, cfg.TRAIN.BATCH_SIZE])
-    prev_tracks = tf.transpose(tf.tile(tf.reshape(self._proposal_targets['tracks_prev'], [cfg.TRAIN.BATCH_SIZE, 1]), [1, cfg.TRAIN.BATCH_SIZE]))
-    tracks_targets = tf.equal(tracks, prev_tracks)
-    tracks_pred = self._predictions['tracks']
-
-    return tf.losses.absolute_difference(tracks_targets, tracks_pred)
+  # def _get_rcnn_tracks_loss(self):
+  #   tracks = tf.tile(tf.reshape(self._proposal_targets['tracks'], [cfg.TRAIN.BATCH_SIZE, 1]), [1, cfg.TRAIN.BATCH_SIZE])
+  #   prev_tracks = tf.transpose(tf.tile(tf.reshape(self._proposal_targets['tracks_prev'], [cfg.TRAIN.BATCH_SIZE, 1]), [1, cfg.TRAIN.BATCH_SIZE]))
+  #   tracks_targets = tf.equal(tracks, prev_tracks)
+  #   tracks_pred = self._predictions['tracks']
+  #
+  #   return tf.losses.absolute_difference(tracks_targets, tracks_pred)
 
   def _add_losses(self):
     with tf.variable_scope('LOSS_' + self._tag) as scope:
