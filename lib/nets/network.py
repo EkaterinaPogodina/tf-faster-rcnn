@@ -136,10 +136,10 @@ class Network(object):
 
   def _proposal_target_layer(self, rois, roi_scores, name, postfix=''):
     with tf.variable_scope(name + postfix) as scope:
-      if postfix:
-        gt_boxes = self._gt_boxes
-      else:
-        gt_boxes = self._gt_boxes_prev
+      # if postfix:
+      gt_boxes = self._gt_boxes
+      # else:
+      #   gt_boxes = self._gt_boxes_prev
 
       rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, tracks = tf.py_func(
         proposal_target_layer,
@@ -378,7 +378,7 @@ class Network(object):
     self._image_prev = tf.placeholder(tf.float32, shape=[1, None, None, 3])
     self._im_info = tf.placeholder(tf.float32, shape=[3])
     self._gt_boxes = tf.placeholder(tf.float32, shape=[None, 6])
-    self._gt_boxes_prev = tf.placeholder(tf.float32, shape=[None, 6])
+    # self._gt_boxes_prev = tf.placeholder(tf.float32, shape=[None, 6])
     self._tag = tag
 
     self._num_classes = num_classes
@@ -456,12 +456,12 @@ class Network(object):
   def train_step(self, sess, blobs, train_op, blobs_prev=None):
     feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
                  self._gt_boxes: blobs['gt_boxes']}
-    if blobs_prev is not None:
-      feed_dict.update({self._image_prev: blobs_prev['data'],
-                        self._gt_boxes_prev: blobs_prev['gt_boxes']})
-    else:
-      feed_dict.update({self._image_prev: blobs['data'],
-                        self._gt_boxes_prev: blobs['gt_boxes']})
+    # if blobs_prev is not None:
+    #   feed_dict.update({self._image_prev: blobs_prev['data'],
+    #                     self._gt_boxes_prev: blobs_prev['gt_boxes']})
+    # else:
+    #   feed_dict.update({self._image_prev: blobs['data'],
+    #                     self._gt_boxes_prev: blobs['gt_boxes']})
     rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, _ = sess.run([self._losses["rpn_cross_entropy"],
                                                                         self._losses['rpn_loss_box'],
                                                                         self._losses['cross_entropy'],
