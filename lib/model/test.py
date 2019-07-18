@@ -104,7 +104,7 @@ def im_detect(sess, net, im, prev_blobs=None):
     # Simply repeat the boxes, once for each class
     pred_boxes = np.tile(boxes, (1, scores.shape[1]))
 
-  return scores, pred_boxes
+  return scores, pred_boxes, blobs['data']
 
 def apply_nms(all_boxes, thresh):
   """Apply non-maximum suppression to all predicted boxes output by the
@@ -151,11 +151,12 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
   # timers
   _t = {'im_detect' : Timer(), 'misc' : Timer()}
 
+  prev_blobs = None
   for i in range(num_images):
     im = cv2.imread(imdb.image_path_at(i))
 
     _t['im_detect'].tic()
-    scores, boxes = im_detect(sess, net, im)
+    scores, boxes, prev_blobs = im_detect(sess, net, im, prev_blobs)
     _t['im_detect'].toc()
     _t['misc'].tic()
 
