@@ -84,12 +84,12 @@ class resnetv1(Network):
       net = tf.pad(net, [[0, 0], [1, 1], [1, 1], [0, 0]])
       net = slim.max_pool2d(net, [3, 3], stride=2, padding='VALID', scope='pool1')
 
-    # with tf.variable_scope(self._prev_scope, self._prev_scope):
-    #   net2 = resnet_utils.conv2d_same(self._image_prev, 64, 7, stride=2, scope='conv1')
-    #   net2 = tf.pad(net2, [[0, 0], [1, 1], [1, 1], [0, 0]])
-    #   net2 = slim.max_pool2d(net2, [3, 3], stride=2, padding='VALID', scope='pool1')
+    with tf.variable_scope(self._prev_scope, self._prev_scope):
+      net2 = resnet_utils.conv2d_same(self._image_prev, 64, 7, stride=2, scope='conv1')
+      net2 = tf.pad(net2, [[0, 0], [1, 1], [1, 1], [0, 0]])
+      net2 = slim.max_pool2d(net2, [3, 3], stride=2, padding='VALID', scope='pool1')
 
-    return net, None
+    return net, net2
 
   def _image_to_head(self, is_training, reuse=None):
     assert (0 <= cfg.RESNET.FIXED_BLOCKS <= 3)
@@ -135,6 +135,11 @@ class resnetv1(Network):
                       resnet_v1_block('block2', base_depth=128, num_units=4, stride=2),
                       resnet_v1_block('block3', base_depth=256, num_units=23, stride=1),
                       resnet_v1_block('block4', base_depth=512, num_units=3, stride=1)]
+
+    self._blocks2 = [resnet_v1_block('block1_prev', base_depth=64, num_units=3, stride=2),
+                    resnet_v1_block('block2_prev', base_depth=128, num_units=4, stride=2),
+                    resnet_v1_block('block3_prev', base_depth=256, num_units=23, stride=1),
+                    resnet_v1_block('block4_prev', base_depth=512, num_units=3, stride=1)]
 
 
   def get_variables_to_restore(self, variables, var_keep_dic):
