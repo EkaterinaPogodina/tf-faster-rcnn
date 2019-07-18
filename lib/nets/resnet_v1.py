@@ -84,12 +84,12 @@ class resnetv1(Network):
       net = tf.pad(net, [[0, 0], [1, 1], [1, 1], [0, 0]])
       net = slim.max_pool2d(net, [3, 3], stride=2, padding='VALID', scope='pool1')
 
-    with tf.variable_scope(self._prev_scope, self._prev_scope):
-      net2 = resnet_utils.conv2d_same(self._image_prev, 64, 7, stride=2, scope='conv1')
-      net2 = tf.pad(net2, [[0, 0], [1, 1], [1, 1], [0, 0]])
-      net2 = slim.max_pool2d(net2, [3, 3], stride=2, padding='VALID', scope='pool1')
+    # with tf.variable_scope(self._prev_scope, self._prev_scope):
+    #   net2 = resnet_utils.conv2d_same(self._image_prev, 64, 7, stride=2, scope='conv1')
+    #   net2 = tf.pad(net2, [[0, 0], [1, 1], [1, 1], [0, 0]])
+    #   net2 = slim.max_pool2d(net2, [3, 3], stride=2, padding='VALID', scope='pool1')
 
-    return net, net2
+    return net, None
 
   def _image_to_head(self, is_training, reuse=None):
     assert (0 <= cfg.RESNET.FIXED_BLOCKS <= 3)
