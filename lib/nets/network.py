@@ -169,11 +169,10 @@ class Network(object):
         [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
         name="proposal_target")
 
-
       rois.set_shape([cfg.TRAIN.BATCH_SIZE, 5])
       roi_scores.set_shape([cfg.TRAIN.BATCH_SIZE])
       labels.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
-      # tracks.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
+      tracks.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
       bbox_targets.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
       bbox_inside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
       bbox_outside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
@@ -183,7 +182,7 @@ class Network(object):
       self._proposal_targets['bbox_targets' + postfix] = bbox_targets
       self._proposal_targets['bbox_inside_weights' + postfix] = bbox_inside_weights
       self._proposal_targets['bbox_outside_weights' + postfix] = bbox_outside_weights
-      # self._proposal_targets['tracks' + postfix] = tracks
+      self._proposal_targets['tracks' + postfix] = tracks
 
       return rois, roi_scores
 
@@ -233,6 +232,10 @@ class Network(object):
       # region classification
       cls_prob, bbox_pred = self._region_classification(fc7, is_training, 
                                                         initializer, initializer_bbox)
+
+    tracks_pred = slim.fully_connected(tf.concat([fc7, fc7_2], axis=1), num_outputs=cfg.TRAIN.BATCH_SIZE)
+    print("!!!!!!!!!", tracks_pred.shape, fc7.shape, fc7_2.shape)
+    self._predictions['tracks'] = tracks_pred
 
     return rois, cls_prob, bbox_pred
 
