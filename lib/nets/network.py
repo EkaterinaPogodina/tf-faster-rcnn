@@ -204,6 +204,11 @@ class Network(object):
       rois, rpn = self._region_proposal(net_conv, is_training, initializer)
       pool5 = self._crop_pool_layer(net_conv, rois, "pool5")
 
+    with tf.variable_scope(self._prev_scope, self._prev_scope):
+      self._anchor_component(prev=True)
+      rois2, rpn2 = self._region_proposal(net_conv2, is_training, initializer, postfix='_prev')
+      # pool5_2 = self._crop_pool_layer(net_conv2, rois2, "pool5")
+
     fc7 = self._head_to_tail(pool5, is_training)
     with tf.variable_scope(self._scope, self._scope):
       # region classification
@@ -283,7 +288,7 @@ class Network(object):
 
     return loss
 
-  def _region_proposal(self, net_conv, is_training, initializer):
+  def _region_proposal(self, net_conv, is_training, initializer, postfix=''):
     rpn = slim.conv2d(net_conv, cfg.RPN_CHANNELS, [3, 3], trainable=is_training, weights_initializer=initializer,
                         scope="rpn_conv/3x3")
     rpn_cls_score = slim.conv2d(rpn, self._num_anchors * 2, [1, 1], trainable=is_training,
