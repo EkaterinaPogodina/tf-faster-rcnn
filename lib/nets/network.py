@@ -163,17 +163,12 @@ class Network(object):
       else:
         gt_boxes = self._gt_boxes
 
-      # rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, tracks = tf.py_func(
-      #   proposal_target_layer,
-      #   [rois, roi_scores, gt_boxes, self._num_classes],
-      #   [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
-      #   name="proposal_target")
-
-      rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights = tf.py_func(
+      rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, tracks = tf.py_func(
         proposal_target_layer,
         [rois, roi_scores, gt_boxes, self._num_classes],
-        [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
+        [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
         name="proposal_target")
+
 
       rois.set_shape([cfg.TRAIN.BATCH_SIZE, 5])
       roi_scores.set_shape([cfg.TRAIN.BATCH_SIZE])

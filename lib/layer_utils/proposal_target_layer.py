@@ -40,7 +40,7 @@ def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes):
 
   # Sample rois with classification labels and bounding box regression
   # targets
-  labels, rois, roi_scores, bbox_targets, bbox_inside_weights = _sample_rois(
+  labels, rois, roi_scores, bbox_targets, bbox_inside_weights, tracks = _sample_rois(
     all_rois, all_scores, gt_boxes, fg_rois_per_image,
     rois_per_image, _num_classes)
 
@@ -51,7 +51,7 @@ def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes):
   bbox_inside_weights = bbox_inside_weights.reshape(-1, _num_classes * 4)
   bbox_outside_weights = np.array(bbox_inside_weights > 0).astype(np.float32)
 
-  return rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights
+  return rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, tracks
 
 
 def _get_bbox_regression_labels(bbox_target_data, num_classes):
@@ -107,6 +107,7 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_ima
   max_overlaps = overlaps.max(axis=1)
 
   labels = gt_boxes[gt_assignment, 4]
+  tracks = gt_boxes[gt_assignment, 5]
 
   # Select foreground RoIs as those with >= FG_THRESH overlap
   fg_inds = np.where(max_overlaps >= cfg.TRAIN.FG_THRESH)[0]
@@ -138,8 +139,10 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_ima
   keep_inds = np.append(fg_inds, bg_inds)
   # Select sampled values from various arrays:
   labels = labels[keep_inds]
+  tracks = tracks[keep_inds]
   # Clamp labels for the background RoIs to 0 and track ids to -1
   labels[int(fg_rois_per_image):] = 0
+  tracks[int(fg_rois_per_image):] = -1
   rois = all_rois[keep_inds]
   roi_scores = all_scores[keep_inds]
 
@@ -149,4 +152,4 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_ima
   bbox_targets, bbox_inside_weights = \
     _get_bbox_regression_labels(bbox_target_data, num_classes)
 
-  return labels, rois, roi_scores, bbox_targets, bbox_inside_weights
+  return labels, rois, roi_scores, bbox_targets, bbox_inside_weights, tracks
