@@ -61,23 +61,36 @@ class Network(object):
       return tf.reshape(reshaped_score, input_shape)
     return tf.nn.softmax(bottom, name=name)
 
-  def _proposal_top_layer(self, rpn_cls_prob, rpn_bbox_pred, name):
+  def _proposal_top_layer(self, rpn_cls_prob, rpn_bbox_pred, name, postfix=''):
+    if postfix:
+      im_info = self._im_info_prev
+      anchors = self._anchors_prev
+    else:
+      im_info = self._im_info
+      anchors = self._anchors
+
     with tf.variable_scope(name) as scope:
       rois, rpn_scores = tf.py_func(proposal_top_layer,
-                                    [rpn_cls_prob, rpn_bbox_pred, self._im_info,
-                                     self._feat_stride, self._anchors, self._num_anchors],
+                                    [rpn_cls_prob, rpn_bbox_pred, im_info,
+                                     self._feat_stride, anchors, self._num_anchors],
                                     [tf.float32, tf.float32], name="proposal_top")
       rois.set_shape([cfg.TEST.RPN_TOP_N, 5])
       rpn_scores.set_shape([cfg.TEST.RPN_TOP_N, 1])
 
     return rois, rpn_scores
 
-  def _proposal_layer(self, rpn_cls_prob, rpn_bbox_pred, name):
-    #print(session.run(rpn_bbox_pred))
+  def _proposal_layer(self, rpn_cls_prob, rpn_bbox_pred, name, postfix=''):
+    if postfix:
+      im_info = self._im_info_prev
+      anchors = self._anchors_prev
+    else:
+      im_info = self._im_info
+      anchors = self._anchors
+
     with tf.variable_scope(name) as scope:
       rois, rpn_scores = tf.py_func(proposal_layer,
-                                    [rpn_cls_prob, rpn_bbox_pred, self._im_info, self._mode,
-                                     self._feat_stride, self._anchors, self._num_anchors],
+                                    [rpn_cls_prob, rpn_bbox_pred, im_info, self._mode,
+                                     self._feat_stride, anchors, self._num_anchors],
                                     [tf.float32, tf.float32], name="proposal")
       rois.set_shape([None, 5])
       rpn_scores.set_shape([None, 1])
@@ -114,10 +127,19 @@ class Network(object):
     return tf.nn.dropout(bottom, ratio, name=name)
 
   def _anchor_target_layer(self, rpn_cls_score, name, postfix=''):
+    if postfix:
+      gt_boxes = self._gt_boxes_prev
+      im_info = self._im_info_prev
+      anchors = self._anchors_prev
+    else:
+      gt_boxes = self._gt_boxes
+      im_info = self._im_info
+      anchors = self._anchors
+
     with tf.variable_scope(name) as scope:
       rpn_labels, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights = tf.py_func(
         anchor_target_layer,
-        [rpn_cls_score, self._gt_boxes, self._im_info, self._feat_stride, self._anchors, self._num_anchors],
+        [rpn_cls_score, gt_boxes, im_info, self._feat_stride, anchors, self._num_anchors],
         [tf.float32, tf.float32, tf.float32, tf.float32],
         name="anchor_target")
 
@@ -136,10 +158,10 @@ class Network(object):
 
   def _proposal_target_layer(self, rois, roi_scores, name, postfix=''):
     with tf.variable_scope(name + postfix) as scope:
-      # if postfix:
-      gt_boxes = self._gt_boxes
-      # else:
-      #   gt_boxes = self._gt_boxes_prev
+      if postfix:
+        gt_boxes = self._gt_boxes_prev
+      else:
+        gt_boxes = self._gt_boxes
 
       # rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, tracks = tf.py_func(
       #   proposal_target_layer,
@@ -302,29 +324,27 @@ class Network(object):
     rpn_bbox_pred = slim.conv2d(rpn, self._num_anchors * 4, [1, 1], trainable=is_training,
                                 weights_initializer=initializer,
                                 padding='VALID', activation_fn=None, scope='rpn_bbox_pred')
-    if postfix:
-      return None, None
-    
+
     if is_training:
-      rois, roi_scores = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois")
-      rpn_labels = self._anchor_target_layer(rpn_cls_score, name="anchor",)
+      rois, roi_scores = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois", postfix=postfix)
+      rpn_labels = self._anchor_target_layer(rpn_cls_score, name="anchor", postfix=postfix)
       # Try to have a deterministic order for the computing graph, for reproducibility
       with tf.control_dependencies([rpn_labels]):
-        rois, _ = self._proposal_target_layer(rois, roi_scores, "rpn_rois")
+        rois, _ = self._proposal_target_layer(rois, roi_scores, "rpn_rois", postfix=postfix)
     else:
       if cfg.TEST.MODE == 'nms':
-        rois, _ = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois")
+        rois, _ = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois", postfix=postfix)
       elif cfg.TEST.MODE == 'top':
         rois, _ = self._proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, "rois")
       else:
         raise NotImplementedError
 
-    self._predictions["rpn_cls_score"] = rpn_cls_score
-    self._predictions["rpn_cls_score_reshape"] = rpn_cls_score_reshape
-    self._predictions["rpn_cls_prob"] = rpn_cls_prob
-    self._predictions["rpn_cls_pred"] = rpn_cls_pred
-    self._predictions["rpn_bbox_pred"] = rpn_bbox_pred
-    self._predictions["rois"] = rois
+    self._predictions["rpn_cls_score" + postfix] = rpn_cls_score
+    self._predictions["rpn_cls_score_reshape" + postfix] = rpn_cls_score_reshape
+    self._predictions["rpn_cls_prob" + postfix] = rpn_cls_prob
+    self._predictions["rpn_cls_pred" + postfix] = rpn_cls_pred
+    self._predictions["rpn_bbox_pred" + postfix] = rpn_bbox_pred
+    self._predictions["rois" + postfix] = rois
 
     return rois, rpn
 
