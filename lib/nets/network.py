@@ -258,9 +258,9 @@ class Network(object):
     ))
     return loss_box
 
-  def _get_rpn_class_loss(self):
-    rpn_cls_score = tf.reshape(self._predictions['rpn_cls_score_reshape'], [-1, 2])
-    rpn_label = tf.reshape(self._anchor_targets['rpn_labels'], [-1])
+  def _get_rpn_class_loss(self, postfix=''):
+    rpn_cls_score = tf.reshape(self._predictions['rpn_cls_score_reshape' + postfix], [-1, 2])
+    rpn_label = tf.reshape(self._anchor_targets['rpn_labels' + postfix], [-1])
     rpn_select = tf.where(tf.not_equal(rpn_label, -1))
     rpn_cls_score = tf.reshape(tf.gather(rpn_cls_score, rpn_select), [-1, 2])
     rpn_label = tf.reshape(tf.gather(rpn_label, rpn_select), [-1])
@@ -268,24 +268,24 @@ class Network(object):
     return tf.reduce_mean(
       tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn_cls_score, labels=rpn_label))
 
-  def _get_rpn_bbox_loss(self, sigma_rpn=3.0):
-    rpn_bbox_pred = self._predictions['rpn_bbox_pred']
-    rpn_bbox_targets = self._anchor_targets['rpn_bbox_targets']
-    rpn_bbox_inside_weights = self._anchor_targets['rpn_bbox_inside_weights']
-    rpn_bbox_outside_weights = self._anchor_targets['rpn_bbox_outside_weights']
+  def _get_rpn_bbox_loss(self, sigma_rpn=3.0, postfix=''):
+    rpn_bbox_pred = self._predictions['rpn_bbox_pred' + postfix]
+    rpn_bbox_targets = self._anchor_targets['rpn_bbox_targets' + postfix]
+    rpn_bbox_inside_weights = self._anchor_targets['rpn_bbox_inside_weights' + postfix]
+    rpn_bbox_outside_weights = self._anchor_targets['rpn_bbox_outside_weights' + postfix]
     return self._smooth_l1_loss(rpn_bbox_pred, rpn_bbox_targets, rpn_bbox_inside_weights,
                                           rpn_bbox_outside_weights, sigma=sigma_rpn, dim=[1, 2, 3])
 
-  def _get_rcnn_class_loss(self):
-    cls_score = self._predictions["cls_score"]
-    label = tf.reshape(self._proposal_targets["labels"], [-1])
+  def _get_rcnn_class_loss(self, postfix=''):
+    cls_score = self._predictions["cls_score" + postfix]
+    label = tf.reshape(self._proposal_targets["labels" + postfix], [-1])
     return tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=cls_score, labels=label))
 
-  def _get_rcnn_bbox_loss(self):
-    bbox_pred = self._predictions['bbox_pred']
-    bbox_targets = self._proposal_targets['bbox_targets']
-    bbox_inside_weights = self._proposal_targets['bbox_inside_weights']
-    bbox_outside_weights = self._proposal_targets['bbox_outside_weights']
+  def _get_rcnn_bbox_loss(self, postfix=''):
+    bbox_pred = self._predictions['bbox_pred' + postfix]
+    bbox_targets = self._proposal_targets['bbox_targets' + postfix]
+    bbox_inside_weights = self._proposal_targets['bbox_inside_weights' + postfix]
+    bbox_outside_weights = self._proposal_targets['bbox_outside_weights' + postfix]
     return self._smooth_l1_loss(bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights)
 
   def _add_losses(self):
@@ -293,22 +293,27 @@ class Network(object):
 
       # RPN, class loss
       rpn_cross_entropy = self._get_rpn_class_loss()
+      rpn_cross_entropy2 = self._get_rpn_class_loss(postfix='_prev')
 
       # RPN, bbox loss
       rpn_loss_box = self._get_rpn_bbox_loss()
+      rpn_loss_box2 = self._get_rpn_bbox_loss(postfix='_prev')
 
       # RCNN, class loss
       cross_entropy = self._get_rcnn_class_loss()
+      cross_entropy2 = self._get_rcnn_class_loss(postfix='_prev')
 
       # RCNN, bbox loss
       loss_box = self._get_rcnn_bbox_loss()
+      loss_box2 = self._get_rcnn_bbox_loss(postfix='_prev')
 
       self._losses['cross_entropy'] = cross_entropy
       self._losses['loss_box'] = loss_box
       self._losses['rpn_cross_entropy'] = rpn_cross_entropy
       self._losses['rpn_loss_box'] = rpn_loss_box
 
-      loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
+      loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box + \
+             cross_entropy2 + loss_box2 + rpn_cross_entropy2 + rpn_loss_box2
       regularization_loss = tf.add_n(tf.losses.get_regularization_losses(), 'regu')
       self._losses['total_loss'] = loss + regularization_loss
 
