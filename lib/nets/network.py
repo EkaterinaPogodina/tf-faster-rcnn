@@ -181,6 +181,7 @@ class Network(object):
                                           [tf.float32, tf.int32], name="generate_anchors")
       anchors.set_shape([None, 4])
       anchor_length.set_shape([])
+
       self._anchors = anchors
       self._anchor_length = anchor_length
 
@@ -341,6 +342,7 @@ class Network(object):
     self._image = tf.placeholder(tf.float32, shape=[1, None, None, 3])
     self._image_prev = tf.placeholder(tf.float32, shape=[1, None, None, 3])
     self._im_info = tf.placeholder(tf.float32, shape=[3])
+    self._im_info_prev = tf.placeholder(tf.float32, shape=[3])
     self._gt_boxes = tf.placeholder(tf.float32, shape=[None, 6])
     self._gt_boxes_prev = tf.placeholder(tf.float32, shape=[None, 6])
     self._tag = tag
@@ -406,14 +408,16 @@ class Network(object):
     return feat
 
   # only useful during testing mode
-  def test_image(self, sess, image, im_info, prev_image=None):
+  def test_image(self, sess, image, im_info, prev_image=None, prev_im_info=None):
     feed_dict = {self._image: image,
                  self._im_info: im_info}
 
     if prev_image is not None:
-      feed_dict.update({self._image_prev: prev_image})
+      feed_dict.update({self._image_prev: prev_image,
+                        self._im_info_prev: prev_im_info})
     else:
-      feed_dict.update({self._image_prev: image})
+      feed_dict.update({self._image_prev: image,
+                        self._im_info_prev: prev_im_info})
 
     cls_score, cls_prob, bbox_pred, rois = sess.run([self._predictions["cls_score"],
                                                      self._predictions['cls_prob'],
@@ -428,9 +432,11 @@ class Network(object):
 
     if blobs_prev is not None:
       feed_dict.update({self._image_prev: blobs_prev['data'],
+                        self._im_info_prev: blobs_prev['im_info'],
                         self._gt_boxes_prev: blobs_prev['gt_boxes']})
     else:
       feed_dict.update({self._image_prev: blobs['data'],
+                        self._im_info_prev: blobs_prev['im_info'],
                         self._gt_boxes_prev: blobs['gt_boxes']})
 
     rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, _ = sess.run([self._losses["rpn_cross_entropy"],
