@@ -229,9 +229,11 @@ class Network(object):
     with tf.variable_scope(self._prev_scope, self._prev_scope):
       self._anchor_component(prev=True)
       rois2, rpn2 = self._region_proposal(net_conv2, is_training, initializer, postfix='_prev')
-      # pool5_2 = self._crop_pool_layer(net_conv2, rois2, "pool5")
+      pool5_2 = self._crop_pool_layer(net_conv2, rois2, "pool5")
 
     fc7 = self._head_to_tail(pool5, is_training)
+    fc7_2 = self._head_to_tail(pool5_2, is_training, prev=True)
+
     with tf.variable_scope(self._scope, self._scope):
       # region classification
       cls_prob, bbox_pred = self._region_classification(fc7, is_training, 
@@ -370,7 +372,7 @@ class Network(object):
   def _image_to_head(self, is_training, reuse=None):
     raise NotImplementedError
 
-  def _head_to_tail(self, pool5, is_training, reuse=None):
+  def _head_to_tail(self, pool5, is_training, reuse=None, prev=False):
     raise NotImplementedError
 
   def create_architecture(self, mode, num_classes, tag=None,
