@@ -171,10 +171,14 @@ class Network(object):
       return rois, roi_scores
 
   def _anchor_component(self, prev=False):
+    if not prev:
+      im_info = self._im_info
+    else:
+      im_info = self._im_info_prev
     with tf.variable_scope('ANCHOR_' + self._tag) as scope:
       # just to get the shape right
-      height = tf.to_int32(tf.ceil(self._im_info[0] / np.float32(self._feat_stride[0])))
-      width = tf.to_int32(tf.ceil(self._im_info[1] / np.float32(self._feat_stride[0])))
+      height = tf.to_int32(tf.ceil(im_info[0] / np.float32(self._feat_stride[0])))
+      width = tf.to_int32(tf.ceil(im_info[1] / np.float32(self._feat_stride[0])))
       anchors, anchor_length = tf.py_func(generate_anchors_pre,
                                           [height, width,
                                            self._feat_stride, self._anchor_scales, self._anchor_ratios],
@@ -182,15 +186,19 @@ class Network(object):
       anchors.set_shape([None, 4])
       anchor_length.set_shape([])
 
-      self._anchors = anchors
-      self._anchor_length = anchor_length
+      if not prev:
+        self._anchors = anchors
+        self._anchor_length = anchor_length
+      else:
+        self._anchors_prev = anchors
+        self._anchor_length_prev = anchor_length
 
   def _build_network(self, is_training=True):
     # select initializers
     initializer = tf.random_normal_initializer(mean=0.0, stddev=0.01)
     initializer_bbox = tf.random_normal_initializer(mean=0.0, stddev=0.001)
 
-    net_conv= self._image_to_head(is_training)
+    net_conv, net_conv2 = self._image_to_head(is_training)
     with tf.variable_scope(self._scope, self._scope):
       self._anchor_component()
       rois, rpn = self._region_proposal(net_conv, is_training, initializer)
@@ -417,7 +425,7 @@ class Network(object):
                         self._im_info_prev: prev_im_info})
     else:
       feed_dict.update({self._image_prev: image,
-                        self._im_info_prev: prev_im_info})
+                        self._im_info_prev: im_info})
 
     cls_score, cls_prob, bbox_pred, rois = sess.run([self._predictions["cls_score"],
                                                      self._predictions['cls_prob'],
@@ -436,7 +444,7 @@ class Network(object):
                         self._gt_boxes_prev: blobs_prev['gt_boxes']})
     else:
       feed_dict.update({self._image_prev: blobs['data'],
-                        self._im_info_prev: blobs_prev['im_info'],
+                        self._im_info_prev: blobs['im_info'],
                         self._gt_boxes_prev: blobs['gt_boxes']})
 
     rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, _ = sess.run([self._losses["rpn_cross_entropy"],

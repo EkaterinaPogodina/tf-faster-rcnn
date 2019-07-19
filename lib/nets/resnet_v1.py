@@ -132,7 +132,7 @@ class resnetv1(Network):
     self._layers['head'] = net_conv
     self._layers['head_prev'] = net_conv2
 
-    return net_conv
+    return net_conv, net_conv2
 
   def _head_to_tail(self, pool5, is_training, reuse=None, prev=False):
     if not prev:
