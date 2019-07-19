@@ -230,11 +230,15 @@ class Network(object):
 
     with tf.variable_scope(self._scope, self._scope):
       # region classification
-      cls_prob, bbox_pred = self._region_classification(fc7, is_training, 
+      cls_prob, bbox_pred = self._region_classification(fc7, is_training,
                                                         initializer, initializer_bbox)
 
+    with tf.variable_scope(self._prev_scope, self._prev_scope):
+      # region classification
+      cls_prob2, bbox_pred2 = self._region_classification(fc7_2, is_training,
+                                                        initializer, initializer_bbox, postfix='_prev')
+
     tracks_pred = slim.fully_connected(tf.concat([fc7, fc7_2], axis=1), num_outputs=cfg.TRAIN.BATCH_SIZE)
-    print("!!!!!!!!!", tracks_pred.shape, fc7.shape, fc7_2.shape)
     self._predictions['tracks'] = tracks_pred
 
     return rois, cls_prob, bbox_pred
@@ -348,7 +352,7 @@ class Network(object):
 
     return rois, rpn
 
-  def _region_classification(self, fc7, is_training, initializer, initializer_bbox):
+  def _region_classification(self, fc7, is_training, initializer, initializer_bbox, postfix=''):
     cls_score = slim.fully_connected(fc7, self._num_classes, 
                                        weights_initializer=initializer,
                                        trainable=is_training,
@@ -360,10 +364,10 @@ class Network(object):
                                      trainable=is_training,
                                      activation_fn=None, scope='bbox_pred')
 
-    self._predictions["cls_score"] = cls_score
-    self._predictions["cls_pred"] = cls_pred
-    self._predictions["cls_prob"] = cls_prob
-    self._predictions["bbox_pred"] = bbox_pred
+    self._predictions["cls_score" + postfix] = cls_score
+    self._predictions["cls_pred" + postfix] = cls_pred
+    self._predictions["cls_prob" + postfix] = cls_prob
+    self._predictions["bbox_pred" + postfix] = bbox_pred
 
     return cls_prob, bbox_pred
 
