@@ -161,25 +161,32 @@ class resnetv1(Network):
                       resnet_v1_block('block3', base_depth=256, num_units=23, stride=1),
                       resnet_v1_block('block4', base_depth=512, num_units=3, stride=1)]
 
-    self._blocks2 = [resnet_v1_block('block1_prev', base_depth=64, num_units=3, stride=2),
-                    resnet_v1_block('block2_prev', base_depth=128, num_units=4, stride=2),
-                    resnet_v1_block('block3_prev', base_depth=256, num_units=23, stride=1),
-                    resnet_v1_block('block4_prev', base_depth=512, num_units=3, stride=1)]
+    self._blocks2 = [resnet_v1_block('block1', base_depth=64, num_units=3, stride=2),
+                    resnet_v1_block('block2', base_depth=128, num_units=4, stride=2),
+                    resnet_v1_block('block3', base_depth=256, num_units=23, stride=1),
+                    resnet_v1_block('block4', base_depth=512, num_units=3, stride=1)]
 
 
   def get_variables_to_restore(self, variables, var_keep_dic):
     variables_to_restore = []
+    variables_to_restore_prev = {}
 
     for v in variables:
       # exclude the first conv layer to swap RGB to BGR
       if v.name == (self._scope + '/conv1/weights:0'):
         self._variables_to_fix[v.name] = v
         continue
+
       if v.name.split(':')[0] in var_keep_dic:
         print('Variables restored: %s' % v.name)
         variables_to_restore.append(v)
+      else:
+        v_repl = v.name.replace(self._prev_scope, self._scope)
+        if v_repl.split(':')[0] in var_keep_dic:
+            print('Variables restored: %s' % v.name)
+            variables_to_restore_prev.update({v_repl: v})
 
-    return variables_to_restore
+    return variables_to_restore, variables_to_restore_prev
 
   def fix_variables(self, sess, pretrained_model):
     print('Fix Resnet V1 layers..')
