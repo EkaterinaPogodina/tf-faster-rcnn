@@ -288,6 +288,14 @@ class Network(object):
     bbox_outside_weights = self._proposal_targets['bbox_outside_weights' + postfix]
     return self._smooth_l1_loss(bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights)
 
+  def _get_rcnn_tracks_loss(self):
+    tracks = tf.tile(tf.reshape(self._proposal_targets['tracks'], [cfg.TRAIN.BATCH_SIZE, 1]), [1, cfg.TRAIN.BATCH_SIZE])
+    prev_tracks = tf.transpose(tf.tile(tf.reshape(self._proposal_targets['tracks_prev'], [cfg.TRAIN.BATCH_SIZE, 1]), [1, cfg.TRAIN.BATCH_SIZE]))
+    tracks_targets = tf.equal(tracks, prev_tracks)
+    tracks_pred = self._predictions['tracks']
+
+    return tf.losses.absolute_difference(tracks_targets, tracks_pred)
+
   def _add_losses(self):
     with tf.variable_scope('LOSS_' + self._tag) as scope:
 
@@ -307,13 +315,16 @@ class Network(object):
       loss_box = self._get_rcnn_bbox_loss()
       loss_box2 = self._get_rcnn_bbox_loss(postfix='_prev')
 
+      tracks_loss = self._get_rcnn_tracks_loss()
+
       self._losses['cross_entropy'] = cross_entropy
       self._losses['loss_box'] = loss_box
       self._losses['rpn_cross_entropy'] = rpn_cross_entropy
       self._losses['rpn_loss_box'] = rpn_loss_box
 
-      loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
-             # cross_entropy2 + loss_box2 + rpn_cross_entropy2 + rpn_loss_box2
+      loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box +\
+             cross_entropy2 + loss_box2 + rpn_cross_entropy2 + rpn_loss_box2 + tracks_loss
+      
       regularization_loss = tf.add_n(tf.losses.get_regularization_losses(), 'regu')
       self._losses['total_loss'] = loss + regularization_loss
 

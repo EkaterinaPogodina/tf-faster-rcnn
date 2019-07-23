@@ -184,7 +184,7 @@ class resnetv1(Network):
         v_repl = v.name.replace(self._prev_scope, self._scope)
         if v_repl.split(':')[0] in var_keep_dic:
             print('Variables restored: %s' % v.name)
-            variables_to_restore_prev.update({v_repl: v})
+            variables_to_restore_prev.update({v_repl.split(':')[0]: v})
 
     return variables_to_restore, variables_to_restore_prev
 
