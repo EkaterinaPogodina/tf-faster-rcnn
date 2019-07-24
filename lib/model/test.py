@@ -153,15 +153,15 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
          for _ in range(imdb.num_classes)]
 
   all_tracks = []
-
   output_dir = get_output_dir(imdb, weights_filename)
   # timers
   _t = {'im_detect' : Timer(), 'misc' : Timer()}
 
   prev_blobs = None
+  prev_keep = []
+  prev_keep2 = []
   for i in range(num_images):
     im = cv2.imread(imdb.image_path_at(i))
-
     _t['im_detect'].tic()
     scores, boxes, prev_blobs, tracks = im_detect(sess, net, im, prev_blobs)
     _t['im_detect'].toc()
@@ -178,7 +178,11 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
         .astype(np.float32, copy=False)
       keep = nms(cls_dets, cfg.TEST.NMS)
       cls_dets = cls_dets[keep, :]
-      tracks_cls.append(tracks[keep, :][:, keep])
+      if i:
+        tracks_cls.append(tracks[keep, :][:, prev_keep[j - 1]])
+        prev_keep[j - 1] = keep
+      else:
+        prev_keep.append(keep)
 
       all_boxes[j][i] = cls_dets
 
@@ -191,7 +195,12 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
         for j in range(1, imdb.num_classes):
           keep = np.where(all_boxes[j][i][:, -1] >= image_thresh)[0]
           all_boxes[j][i] = all_boxes[j][i][keep, :]
-          tracks_cls[j - 1] = tracks_cls[j - 1][keep, :][:, keep]
+          if i:
+            tracks_cls[j - 1] = tracks_cls[j - 1][keep, :][:, prev_keep2[j - 1]]
+            prev_keep2[j - 1] = keep
+          else:
+            prev_keep2.append(keep)
+
     _t['misc'].toc()
 
     all_tracks.append(tracks_cls)
