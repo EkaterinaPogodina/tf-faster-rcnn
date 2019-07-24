@@ -91,13 +91,13 @@ def im_detect(sess, net, im, prev_blobs=None):
   blobs['im_info'] = np.array([im_blob.shape[1], im_blob.shape[2], im_scales[0]], dtype=np.float32)
 
   if prev_blobs:
-    _, scores, bbox_pred, rois = net.test_image(sess,
+    _, scores, bbox_pred, rois, tracks = net.test_image(sess,
                                               blobs['data'],
                                               blobs['im_info'],
                                               prev_image=prev_blobs['data'],
                                               prev_im_info=blobs['im_info'])
   else:
-    _, scores, bbox_pred, rois = net.test_image(sess, blobs['data'], blobs['im_info'])
+    _, scores, bbox_pred, rois, tracks = net.test_image(sess, blobs['data'], blobs['im_info'])
   
   boxes = rois[:, 1:5] / im_scales[0]
   scores = np.reshape(scores, [scores.shape[0], -1])
@@ -111,7 +111,7 @@ def im_detect(sess, net, im, prev_blobs=None):
     # Simply repeat the boxes, once for each class
     pred_boxes = np.tile(boxes, (1, scores.shape[1]))
 
-  return scores, pred_boxes, blobs
+  return scores, pred_boxes, blobs, tracks
 
 def apply_nms(all_boxes, thresh):
   """Apply non-maximum suppression to all predicted boxes output by the
@@ -163,7 +163,7 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
     im = cv2.imread(imdb.image_path_at(i))
 
     _t['im_detect'].tic()
-    scores, boxes, prev_blobs = im_detect(sess, net, im, prev_blobs)
+    scores, boxes, prev_blobs, tracks = im_detect(sess, net, im, prev_blobs)
     _t['im_detect'].toc()
     _t['misc'].tic()
 
@@ -177,6 +177,8 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
         .astype(np.float32, copy=False)
       keep = nms(cls_dets, cfg.TEST.NMS)
       cls_dets = cls_dets[keep, :]
+
+
       all_boxes[j][i] = cls_dets
 
 

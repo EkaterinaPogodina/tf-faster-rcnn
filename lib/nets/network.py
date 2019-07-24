@@ -324,7 +324,7 @@ class Network(object):
 
       loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box +\
              cross_entropy2 + loss_box2 + rpn_cross_entropy2 + rpn_loss_box2 + tracks_loss
-      
+
       regularization_loss = tf.add_n(tf.losses.get_regularization_losses(), 'regu')
       self._losses['total_loss'] = loss + regularization_loss
 
@@ -475,10 +475,11 @@ class Network(object):
       feed_dict.update({self._image_prev: image,
                         self._im_info_prev: im_info})
 
-    cls_score, cls_prob, bbox_pred, rois = sess.run([self._predictions["cls_score"],
+    cls_score, cls_prob, bbox_pred, rois, tracks = sess.run([self._predictions["cls_score"],
                                                      self._predictions['cls_prob'],
                                                      self._predictions['bbox_pred'],
-                                                     self._predictions['rois']],
+                                                     self._predictions['rois'],
+                                                     self._predictions['tracks']],
                                                     feed_dict=feed_dict)
     return cls_score, cls_prob, bbox_pred, rois
 
