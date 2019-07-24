@@ -193,12 +193,13 @@ class stanford(imdb):
       filename)
     return path
 
-  def _write_voc_results_file(self, all_boxes):
+  def _write_voc_results_file(self, all_boxes, tracks):
     for cls_ind, cls in enumerate(self.classes):
       if cls == '__background__':
         continue
       print('Writing {} stanford results file'.format(cls))
       filename = '/root/{}'.format(cls)
+      filename2 = '/root/tracks_{}'.format(cls)
       with open(filename, 'wt') as f:
         for im_ind, index in enumerate(self.image_index):
           dets = all_boxes[cls_ind][im_ind]
@@ -210,6 +211,9 @@ class stanford(imdb):
                     format(index, dets[k, -1],
                            dets[k, 0] + 1, dets[k, 1] + 1,
                            dets[k, 2] + 1, dets[k, 3] + 1))
+      with open(filename, 'wt') as f:
+        for i in range(len(tracks[cls_ind - 1])):
+          f.write('{}\n'.format(tracks[cls_ind - 1][i]))
 
   def _do_python_eval(self, output_dir='output'):
     annopath = os.path.join(
@@ -254,8 +258,8 @@ class stanford(imdb):
     print('-- Thanks, The Management')
     print('--------------------------------------------------------------')
 
-  def evaluate_detections(self, all_boxes, output_dir):
-    self._write_voc_results_file(all_boxes)
+  def evaluate_detections(self, all_boxes, tracks, output_dir):
+    self._write_voc_results_file(all_boxes, tracks)
     self._do_python_eval(output_dir)
     if self.config['cleanup']:
       for cls in self._classes:

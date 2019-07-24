@@ -167,6 +167,7 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
     _t['im_detect'].toc()
     _t['misc'].tic()
 
+    tracks_cls = []
     # skip j = 0, because it's the background class
     for j in range(1, imdb.num_classes):
       inds = np.where(scores[:, j] > thresh)[0]
@@ -177,10 +178,9 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
         .astype(np.float32, copy=False)
       keep = nms(cls_dets, cfg.TEST.NMS)
       cls_dets = cls_dets[keep, :]
-
+      tracks_cls.append(tracks[keep, :][:, keep])
 
       all_boxes[j][i] = cls_dets
-
 
     # Limit to max_per_image detections *over all classes*
     if max_per_image > 0:
@@ -191,6 +191,7 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
         for j in range(1, imdb.num_classes):
           keep = np.where(all_boxes[j][i][:, -1] >= image_thresh)[0]
           all_boxes[j][i] = all_boxes[j][i][keep, :]
+          tracks_cls[j - 1] = tracks_cls[j - 1][keep, :][:, keep]
     _t['misc'].toc()
 
     print('im_detect: {:d}/{:d} {:.3f}s {:.3f}s' \
@@ -202,5 +203,5 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
     pickle.dump(all_boxes, f, pickle.HIGHEST_PROTOCOL)
 
   print('Evaluating detections')
-  imdb.evaluate_detections(all_boxes, output_dir)
+  imdb.evaluate_detections(all_boxes, tracks, output_dir)
 

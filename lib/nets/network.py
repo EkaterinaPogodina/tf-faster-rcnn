@@ -481,7 +481,7 @@ class Network(object):
                                                      self._predictions['rois'],
                                                      self._predictions['tracks']],
                                                     feed_dict=feed_dict)
-    return cls_score, cls_prob, bbox_pred, rois
+    return cls_score, cls_prob, bbox_pred, rois, tracks
 
   def train_step(self, sess, blobs, train_op, blobs_prev=None):
     feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
