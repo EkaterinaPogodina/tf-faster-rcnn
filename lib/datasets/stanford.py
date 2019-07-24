@@ -211,7 +211,7 @@ class stanford(imdb):
                     format(index, dets[k, -1],
                            dets[k, 0] + 1, dets[k, 1] + 1,
                            dets[k, 2] + 1, dets[k, 3] + 1))
-      with open(filename, 'wt') as f:
+      with open(filename2, 'wt') as f:
         for i in range(len(tracks[cls_ind - 1])):
           f.write('{}\n'.format(tracks[cls_ind - 1][i]))
 

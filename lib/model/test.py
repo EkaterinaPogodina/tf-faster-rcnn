@@ -152,6 +152,8 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
   all_boxes = [[[] for _ in range(num_images)]
          for _ in range(imdb.num_classes)]
 
+  all_tracks = []
+
 
 
   output_dir = get_output_dir(imdb, weights_filename)
@@ -193,6 +195,8 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
           all_boxes[j][i] = all_boxes[j][i][keep, :]
           tracks_cls[j - 1] = tracks_cls[j - 1][keep, :][:, keep]
     _t['misc'].toc()
+
+    print(tracks_cls[0].shape, len(keep))
 
     print('im_detect: {:d}/{:d} {:.3f}s {:.3f}s' \
         .format(i + 1, num_images, _t['im_detect'].average_time,
