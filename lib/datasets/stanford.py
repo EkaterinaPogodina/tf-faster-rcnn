@@ -204,6 +204,7 @@ class stanford(imdb):
         for im_ind, index in enumerate(self.image_index):
           dets = all_boxes[cls_ind][im_ind]
           if dets == []:
+            print(im_ind, cls_ind)
             continue
           # the VOCdevkit expects 1-based indices
           for k in range(dets.shape[0]):
@@ -212,8 +213,11 @@ class stanford(imdb):
                            dets[k, 0] + 1, dets[k, 1] + 1,
                            dets[k, 2] + 1, dets[k, 3] + 1))
       with open(filename2, 'wt') as f:
-        for i in range(len(tracks[cls_ind - 1])):
-          f.write('{}\n'.format(tracks[cls_ind - 1][i]))
+        for im_ind, index in enumerate(self.image_index):
+          track = tracks[im_ind][cls_ind - 1]
+          # the VOCdevkit expects 1-based indices
+          for i in range(len(track)):
+            f.write('{}\n'.format(track[i]))
 
   def _do_python_eval(self, output_dir='output'):
     annopath = os.path.join(

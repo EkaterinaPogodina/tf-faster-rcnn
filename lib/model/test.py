@@ -154,8 +154,6 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
 
   all_tracks = []
 
-
-
   output_dir = get_output_dir(imdb, weights_filename)
   # timers
   _t = {'im_detect' : Timer(), 'misc' : Timer()}
@@ -196,7 +194,7 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
           tracks_cls[j - 1] = tracks_cls[j - 1][keep, :][:, keep]
     _t['misc'].toc()
 
-    print(tracks_cls[0].shape, len(keep))
+    all_tracks.append(tracks_cls)
 
     print('im_detect: {:d}/{:d} {:.3f}s {:.3f}s' \
         .format(i + 1, num_images, _t['im_detect'].average_time,
@@ -207,5 +205,5 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
     pickle.dump(all_boxes, f, pickle.HIGHEST_PROTOCOL)
 
   print('Evaluating detections')
-  imdb.evaluate_detections(all_boxes, tracks, output_dir)
+  imdb.evaluate_detections(all_boxes, all_tracks, output_dir)
 
