@@ -217,7 +217,12 @@ class stanford(imdb):
           track = tracks[im_ind][cls_ind - 1]
           # the VOCdevkit expects 1-based indices
           for i in range(len(track)):
-            f.write('{}\n'.format(track[i]))
+            str_value = "{} ".format(index)
+            for j in range(len(track[0])):
+              str_value += "{} ".format(track[i][j])
+            str_value += "\n"
+            f.write(str_value)
+
 
   def _do_python_eval(self, output_dir='output'):
     annopath = os.path.join(

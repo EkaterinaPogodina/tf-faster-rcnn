@@ -182,6 +182,7 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
         tracks_cls.append(tracks[keep, :][:, prev_keep[j - 1]])
         prev_keep[j - 1] = keep
       else:
+        tracks_cls.append(tracks[keep, :][:, keep])
         prev_keep.append(keep)
 
       all_boxes[j][i] = cls_dets
@@ -199,6 +200,7 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
             tracks_cls[j - 1] = tracks_cls[j - 1][keep, :][:, prev_keep2[j - 1]]
             prev_keep2[j - 1] = keep
           else:
+            tracks_cls.append(tracks[keep, :][:, keep])
             prev_keep2.append(keep)
 
     _t['misc'].toc()

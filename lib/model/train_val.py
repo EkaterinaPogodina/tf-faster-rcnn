@@ -277,8 +277,11 @@ class SolverWrapper(object):
       # Get training data, one batch at a time
       blobs = self.data_layer.forward()
 
-      rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss = \
+      rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, tracks_loss = \
           self.net.train_step(sess, blobs, train_op, prev_blobs)
+
+      with open('tracks_loss.txt', 'a+') as f:
+        f.write('{}\n'.format(tracks_loss))
 
       timer.toc()
 

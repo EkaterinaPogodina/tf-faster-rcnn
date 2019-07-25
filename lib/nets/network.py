@@ -321,9 +321,10 @@ class Network(object):
       self._losses['loss_box'] = loss_box
       self._losses['rpn_cross_entropy'] = rpn_cross_entropy
       self._losses['rpn_loss_box'] = rpn_loss_box
+      self._losses['tracks'] = tracks_loss
 
       loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box +\
-             cross_entropy2 + loss_box2 + rpn_cross_entropy2 + rpn_loss_box2 + tracks_loss
+             cross_entropy2 + loss_box2 + rpn_cross_entropy2 + rpn_loss_box2 + 10 * tracks_loss
 
       regularization_loss = tf.add_n(tf.losses.get_regularization_losses(), 'regu')
       self._losses['total_loss'] = loss + regularization_loss
@@ -496,11 +497,12 @@ class Network(object):
                         self._im_info_prev: blobs['im_info'],
                         self._gt_boxes_prev: blobs['gt_boxes']})
 
-    rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, _ = sess.run([self._losses["rpn_cross_entropy"],
+    rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, tracks_loss, _ = sess.run([self._losses["rpn_cross_entropy"],
                                                                         self._losses['rpn_loss_box'],
                                                                         self._losses['cross_entropy'],
                                                                         self._losses['loss_box'],
                                                                         self._losses['total_loss'],
+                                                                        self._losses['tracks_loss'],
                                                                         train_op],
                                                                        feed_dict=feed_dict)
-    return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss
+    return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, tracks_loss
