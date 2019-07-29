@@ -277,7 +277,7 @@ class SolverWrapper(object):
       # Get training data, one batch at a time
       blobs = self.data_layer.forward()
 
-      rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, tracks_loss, real_tracks, real_tracks_prev = \
+      rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, tracks_loss, tracks_targets, tracks_pred = \
           self.net.train_step(sess, blobs, train_op, prev_blobs)
 
       with open('tracks_loss.txt', 'a+') as f:
@@ -295,7 +295,7 @@ class SolverWrapper(object):
         print('speed: {:.3f}s / iter'.format(timer.average_time))
 
       if iter % 100 == 0:
-        print(real_tracks)
+        print(tracks_targets[0])
 
       # Snapshotting
       if iter % cfg.TRAIN.SNAPSHOT_ITERS == 0:
