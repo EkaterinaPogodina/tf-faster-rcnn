@@ -294,8 +294,10 @@ class Network(object):
     tracks_targets = tf.equal(tracks, prev_tracks)
     tracks_pred = self._predictions['tracks']
 
-    self._predictions['real_tracks'] = tracks
-    self._predictions['real_tracks_prev'] = prev_tracks
+    # self._predictions['real_tracks'] = tracks
+    # self._predictions['real_tracks_prev'] = prev_tracks
+    self._predictions['tracks_targets'] = tracks_targets
+    self._predictions['tracks_pred'] = tracks_pred
 
     return tf.losses.absolute_difference(tracks_targets, tracks_pred)
 
@@ -500,14 +502,14 @@ class Network(object):
                         self._im_info_prev: blobs['im_info'],
                         self._gt_boxes_prev: blobs['gt_boxes']})
 
-    rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, tracks_loss, real_tracks, real_tracks_prev, _ = sess.run([self._losses["rpn_cross_entropy"],
+    rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, tracks_loss, tracks_targets, tracks_pred, _ = sess.run([self._losses["rpn_cross_entropy"],
                                                                         self._losses['rpn_loss_box'],
                                                                         self._losses['cross_entropy'],
                                                                         self._losses['loss_box'],
                                                                         self._losses['total_loss'],
                                                                         self._losses['tracks'],
-                                                                        self._predictions['real_tracks'],
-                                                                        self._predictions['real_tracks_prev'].
+                                                                        self._predictions['tracks_targets'],
+                                                                        self._predictions['tracks_pred'].
                                                                         train_op],
                                                                        feed_dict=feed_dict)
-    return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, tracks_loss, real_tracks, real_tracks_prev
+    return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, tracks_loss, tracks_targets, tracks_pred
