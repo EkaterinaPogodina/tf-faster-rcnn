@@ -163,16 +163,17 @@ class Network(object):
       else:
         gt_boxes = self._gt_boxes
 
-      rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, tracks = tf.py_func(
+      rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, tracks, tracks_weights = tf.py_func(
         proposal_target_layer,
         [rois, roi_scores, gt_boxes, self._num_classes],
-        [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
+        [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
         name="proposal_target")
 
       rois.set_shape([cfg.TRAIN.BATCH_SIZE, 5])
       roi_scores.set_shape([cfg.TRAIN.BATCH_SIZE])
       labels.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
       tracks.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
+      tracks_weights.set_shape([cfg.TRAIN.BATCH_SIZE, 1])
       bbox_targets.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
       bbox_inside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
       bbox_outside_weights.set_shape([cfg.TRAIN.BATCH_SIZE, self._num_classes * 4])
@@ -183,6 +184,7 @@ class Network(object):
       self._proposal_targets['bbox_inside_weights' + postfix] = bbox_inside_weights
       self._proposal_targets['bbox_outside_weights' + postfix] = bbox_outside_weights
       self._proposal_targets['tracks' + postfix] = tracks
+      self._proposal_targets['tracks_weights' + postfix] = tracks_weights
 
       return rois, roi_scores
 
@@ -294,12 +296,19 @@ class Network(object):
     tracks_targets = tf.equal(tracks, prev_tracks)
     tracks_pred = self._predictions['tracks']
 
+    weights = tf.reshape(self._proposal_targets['tracks_weights'], [cfg.TRAIN.BATCH_SIZE, 1])
+    weights_prev = tf.reshape(self._proposal_targets['tracks_weights_prev'], [1, cfg.TRAIN.BATCH_SIZE])
+
+    weights_all = tf.matmul(weights, weights_prev)
+
     # self._predictions['real_tracks'] = tracks
     # self._predictions['real_tracks_prev'] = prev_tracks
     self._predictions['tracks_targets'] = tracks_targets
     self._predictions['tracks_pred'] = tracks_pred
 
-    return tf.losses.absolute_difference(tracks_targets, tracks_pred)
+    loss = tf.reduce_sum(tf.multiply(tf.abs(tf.cast(tracks_targets, dtype=tf.float32) - tracks_pred), weights))
+
+    return loss
 
   def _add_losses(self):
     with tf.variable_scope('LOSS_' + self._tag) as scope:

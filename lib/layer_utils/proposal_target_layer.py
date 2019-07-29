@@ -40,7 +40,7 @@ def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes):
 
   # Sample rois with classification labels and bounding box regression
   # targets
-  labels, rois, roi_scores, bbox_targets, bbox_inside_weights, tracks = _sample_rois(
+  labels, rois, roi_scores, bbox_targets, bbox_inside_weights, tracks, tracks_weights = _sample_rois(
     all_rois, all_scores, gt_boxes, fg_rois_per_image,
     rois_per_image, _num_classes)
 
@@ -51,7 +51,7 @@ def proposal_target_layer(rpn_rois, rpn_scores, gt_boxes, _num_classes):
   bbox_inside_weights = bbox_inside_weights.reshape(-1, _num_classes * 4)
   bbox_outside_weights = np.array(bbox_inside_weights > 0).astype(np.float32)
 
-  return rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, tracks
+  return rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, tracks, tracks_weights
 
 
 def _get_bbox_regression_labels(bbox_target_data, num_classes):
@@ -142,7 +142,8 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_ima
   tracks = tracks[keep_inds]
   # Clamp labels for the background RoIs to 0 and track ids to -1
   labels[int(fg_rois_per_image):] = 0
-  tracks[int(fg_rois_per_image):] = -1
+  #tracks[int(fg_rois_per_image):] = -1
+  tracks_weights = tracks != 0
   rois = all_rois[keep_inds]
   roi_scores = all_scores[keep_inds]
 
@@ -152,4 +153,4 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_ima
   bbox_targets, bbox_inside_weights = \
     _get_bbox_regression_labels(bbox_target_data, num_classes)
 
-  return labels, rois, roi_scores, bbox_targets, bbox_inside_weights, tracks
+  return labels, rois, roi_scores, bbox_targets, bbox_inside_weights, tracks, tracks_weights

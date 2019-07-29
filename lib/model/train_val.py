@@ -288,14 +288,19 @@ class SolverWrapper(object):
       prev_blobs = blobs
 
       # Display training information
-      if iter % 10 == 0:
+      if iter % 100 == 0:
         print('iter: %d / %d, total loss: %.6f\n >>> rpn_loss_cls: %.6f\n '
               '>>> rpn_loss_box: %.6f\n >>> loss_cls: %.6f\n >>> loss_box: %.6f\n >>>  lr: %f' % \
               (iter, max_iters, total_loss, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
         print('speed: {:.3f}s / iter'.format(timer.average_time))
 
       if iter % 100 == 0:
-        print(tracks_targets[0])
+        for j in range(len(tracks_targets)):
+          if sum(tracks_pred[j]) > 0:
+            print(tracks_targets[j])
+            print(tracks_pred[j])
+        print("track_loss", tracks_loss)
+        # print("Full_diff:", np.sum(np.abs(tracks_targets - tracks_pred)))
 
       # Snapshotting
       if iter % cfg.TRAIN.SNAPSHOT_ITERS == 0:
