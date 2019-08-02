@@ -202,6 +202,14 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
           else:
             tracks_cls.append(tracks[keep, :][:, keep])
             prev_keep2.append(keep)
+      else:
+        for j in range(1, imdb.num_classes):
+          if i == 0:
+            tracks_cls.append(tracks)
+            prev_keep2.append(list(range(len(tracks))))
+          else:
+            tracks_cls[j - 1] = tracks
+            prev_keep2[j - 1] = list(range(len(tracks)))
 
     _t['misc'].toc()
 

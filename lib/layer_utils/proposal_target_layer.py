@@ -143,7 +143,7 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_ima
   # Clamp labels for the background RoIs to 0 and track ids to -1
   labels[int(fg_rois_per_image):] = 0
   #tracks[int(fg_rois_per_image):] = -1
-  tracks_weights = tracks != 0
+  tracks_weights = (tracks != 0).astype(np.int32)
   rois = all_rois[keep_inds]
   roi_scores = all_scores[keep_inds]
 

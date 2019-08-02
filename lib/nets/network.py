@@ -166,7 +166,7 @@ class Network(object):
       rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, tracks, tracks_weights = tf.py_func(
         proposal_target_layer,
         [rois, roi_scores, gt_boxes, self._num_classes],
-        [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
+        [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.int32],
         name="proposal_target")
 
       rois.set_shape([cfg.TRAIN.BATCH_SIZE, 5])
@@ -306,9 +306,10 @@ class Network(object):
     self._predictions['tracks_targets'] = tracks_targets
     self._predictions['tracks_pred'] = tracks_pred
 
-    loss = tf.reduce_sum(tf.multiply(tf.abs(tf.cast(tracks_targets, dtype=tf.float32) - tracks_pred), weights))
+    loss = tf.reduce_sum(
+      tf.multiply(tf.abs(tf.cast(tracks_targets, dtype=tf.float32) - tracks_pred), tf.cast(weights_all, tf.float32)))
 
-    return loss
+    return loss / 200
 
   def _add_losses(self):
     with tf.variable_scope('LOSS_' + self._tag) as scope:
@@ -338,7 +339,7 @@ class Network(object):
       self._losses['tracks'] = tracks_loss
 
       loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box +\
-             cross_entropy2 + loss_box2 + rpn_cross_entropy2 + rpn_loss_box2 + 10 * tracks_loss
+             cross_entropy2 + loss_box2 + rpn_cross_entropy2 + rpn_loss_box2 + tracks_loss
 
       regularization_loss = tf.add_n(tf.losses.get_regularization_losses(), 'regu')
       self._losses['total_loss'] = loss + regularization_loss
