@@ -309,7 +309,7 @@ class Network(object):
     loss = tf.reduce_sum(
       tf.multiply(tf.abs(tf.cast(tracks_targets, dtype=tf.float32) - tracks_pred), tf.cast(weights_all, tf.float32)))
 
-    return loss / 200
+    return loss / 500
 
   def _add_losses(self):
     with tf.variable_scope('LOSS_' + self._tag) as scope:
@@ -519,7 +519,7 @@ class Network(object):
                                                                         self._losses['total_loss'],
                                                                         self._losses['tracks'],
                                                                         self._predictions['tracks_targets'],
-                                                                        self._predictions['tracks_pred'].
+                                                                        self._predictions['tracks_pred'],
                                                                         train_op],
                                                                        feed_dict=feed_dict)
     return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, tracks_loss, tracks_targets, tracks_pred

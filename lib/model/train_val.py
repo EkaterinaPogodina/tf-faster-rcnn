@@ -295,10 +295,10 @@ class SolverWrapper(object):
         print('speed: {:.3f}s / iter'.format(timer.average_time))
 
       if iter % 100 == 0:
-        for j in range(len(tracks_targets)):
-          if sum(tracks_pred[j]) > 0:
-            print(tracks_targets[j])
-            print(tracks_pred[j])
+        # for j in range(len(tracks_targets)):
+        #   if sum(tracks_pred[j]) > 0:
+        #     print(tracks_targets[j])
+        #     print(tracks_pred[j])
         print("track_loss", tracks_loss)
         # print("Full_diff:", np.sum(np.abs(tracks_targets - tracks_pred)))
 
