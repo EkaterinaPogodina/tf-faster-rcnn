@@ -299,17 +299,22 @@ class Network(object):
     weights = tf.reshape(self._proposal_targets['tracks_weights'], [cfg.TRAIN.BATCH_SIZE, 1])
     weights_prev = tf.reshape(self._proposal_targets['tracks_weights_prev'], [1, cfg.TRAIN.BATCH_SIZE])
 
-    weights_all = tf.matmul(weights, weights_prev)
+    weights_all = tf.cast(tf.matmul(weights, weights_prev), tf.int32)
 
     # self._predictions['real_tracks'] = tracks
     # self._predictions['real_tracks_prev'] = prev_tracks
     self._predictions['tracks_targets'] = tracks_targets
+    tracks_pred = tf.math.greater(tracks_pred, 0.5)
     self._predictions['tracks_pred'] = tracks_pred
 
-    loss = tf.reduce_sum(
-      tf.multiply(tf.abs(tf.cast(tracks_targets, dtype=tf.float32) - tracks_pred), tf.cast(weights_all, tf.float32)))
+    tracks_targets = tf.cast(tracks_targets, dtype=tf.int32)
 
-    return loss / 500
+    loss = - tf.multiply(tracks_pred, tracks_targets) + tf.multiply(tracks_pred, tf.equal(tracks_targets, 0))
+    loss = tf.losses.mean_squared_error(tf.multiply(loss, weights_all))
+
+    # loss = tf.reduce_sum(tf.multiply(tf.abs(tracks_targets - tracks_pred), weights_all))
+
+    return loss
 
   def _add_losses(self):
     with tf.variable_scope('LOSS_' + self._tag) as scope:

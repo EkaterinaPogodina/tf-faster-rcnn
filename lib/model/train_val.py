@@ -294,23 +294,15 @@ class SolverWrapper(object):
         print('speed: {:.3f}s / iter'.format(timer.average_time))
 
       if iter % 100 == 0:
-        # for j in range(len(tracks_targets)):
-        #   if sum(tracks_pred[j]) > 0:
-        #     print(tracks_targets[j])
-        #     print(tracks_pred[j])
-        #print("track_loss", tracks_loss)
-        # print("Full_diff:", np.sum(np.abs(tracks_targets - tracks_pred)))
-        #
-        d.update({'_tracks_targets'.format(iter): tracks_targets,
-             '_tracks_pred'.format(iter): tracks_pred,
-             '_tracks_weights'.format(iter): tracks_weights,
-             '_tracks_weights_prev'.format(iter): tracks_weights_prev,
+        d.update({'{}_tracks_targets'.format(iter): tracks_targets,
+             '{}_tracks_pred'.format(iter): tracks_pred,
+             '{}_tracks_weights'.format(iter): tracks_weights,
+             '{}_tracks_weights_prev'.format(iter): tracks_weights_prev,
                })
-        json_file = json.dumps(dict)
-        with open("dict.json", "w") as f:
-          f.write(json_file)
 
-        #f.write('{}\n'.format(tracks_loss))
+        f = open("tracks.pkl", "wb")
+        pickle.dump(d, f)
+        f.close()
 
       # Snapshotting
       if iter % cfg.TRAIN.SNAPSHOT_ITERS == 0:
