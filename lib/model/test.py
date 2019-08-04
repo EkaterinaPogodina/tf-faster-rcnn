@@ -197,19 +197,25 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
           keep = np.where(all_boxes[j][i][:, -1] >= image_thresh)[0]
           all_boxes[j][i] = all_boxes[j][i][keep, :]
           if i:
+            # print(tracks_cls[j - 1][keep, :])
+            # print(j, keep)
+            # print(j, prev_keep2[j-1])
+
+            # print("after", len(tracks_cls[j - 1][keep, :][0]))
+
             tracks_cls[j - 1] = tracks_cls[j - 1][keep, :][:, prev_keep2[j - 1]]
             prev_keep2[j - 1] = keep
           else:
-            tracks_cls.append(tracks[keep, :][:, keep])
+            tracks_cls[j - 1] = tracks_cls[j - 1][keep, :][:, keep]
             prev_keep2.append(keep)
       else:
         for j in range(1, imdb.num_classes):
-          if i == 0:
-            tracks_cls.append(tracks)
-            prev_keep2.append(list(range(len(tracks))))
+          if not i:
+            # print("!!!", len(tracks_cls[j-1]), len(tracks_cls[j-1][0]))
+            prev_keep2.append(list(range(len(tracks_cls[j - 1]))))
           else:
-            tracks_cls[j - 1] = tracks
-            prev_keep2[j - 1] = list(range(len(tracks)))
+            # print("!!!", len(tracks_cls[j-1]), len(tracks_cls[j-1][0]))
+            prev_keep2[j - 1] = list(range(len(tracks_cls[j - 1])))
 
     _t['misc'].toc()
 
