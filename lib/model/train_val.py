@@ -20,6 +20,7 @@ import os
 import sys
 import glob
 import time
+import json
 
 import tensorflow as tf
 from tensorflow.python import pywrap_tensorflow
@@ -264,6 +265,7 @@ class SolverWrapper(object):
     stepsizes.reverse()
     next_stepsize = stepsizes.pop()
     prev_blobs = None
+    d = {}
     while iter < max_iters + 1:
       # Learning rate
       if iter == next_stepsize + 1:
@@ -277,11 +279,8 @@ class SolverWrapper(object):
       # Get training data, one batch at a time
       blobs = self.data_layer.forward()
 
-      rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, tracks_loss, tracks_targets, tracks_pred = \
+      rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, tracks_loss, tracks_targets, tracks_pred, tracks_weights, tracks_weights_prev = \
           self.net.train_step(sess, blobs, train_op, prev_blobs)
-
-      with open('tracks_loss.txt', 'a+') as f:
-        f.write('{}\n'.format(tracks_loss))
 
       timer.toc()
 
@@ -299,8 +298,19 @@ class SolverWrapper(object):
         #   if sum(tracks_pred[j]) > 0:
         #     print(tracks_targets[j])
         #     print(tracks_pred[j])
-        print("track_loss", tracks_loss)
+        #print("track_loss", tracks_loss)
         # print("Full_diff:", np.sum(np.abs(tracks_targets - tracks_pred)))
+        #
+        d.update({'_tracks_targets'.format(iter): tracks_targets,
+             '_tracks_pred'.format(iter): tracks_pred,
+             '_tracks_weights'.format(iter): tracks_weights,
+             '_tracks_weights_prev'.format(iter): tracks_weights_prev,
+               })
+        json_file = json.dumps(dict)
+        with open("dict.json", "w") as f:
+          f.write(json_file)
+
+        #f.write('{}\n'.format(tracks_loss))
 
       # Snapshotting
       if iter % cfg.TRAIN.SNAPSHOT_ITERS == 0:

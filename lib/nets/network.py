@@ -512,7 +512,7 @@ class Network(object):
                         self._im_info_prev: blobs['im_info'],
                         self._gt_boxes_prev: blobs['gt_boxes']})
 
-    rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, tracks_loss, tracks_targets, tracks_pred, _ = sess.run([self._losses["rpn_cross_entropy"],
+    rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, tracks_loss, tracks_targets, tracks_pred, tracks_weights, tracks_weights_prev, _ = sess.run([self._losses["rpn_cross_entropy"],
                                                                         self._losses['rpn_loss_box'],
                                                                         self._losses['cross_entropy'],
                                                                         self._losses['loss_box'],
@@ -520,6 +520,8 @@ class Network(object):
                                                                         self._losses['tracks'],
                                                                         self._predictions['tracks_targets'],
                                                                         self._predictions['tracks_pred'],
+                                                                        self._proposal_targets['tracks_weights'],
+                                                                        self._proposal_targets['tracks_weights_prev'],
                                                                         train_op],
                                                                        feed_dict=feed_dict)
-    return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, tracks_loss, tracks_targets, tracks_pred
+    return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, tracks_loss, tracks_targets, tracks_pred, tracks_weights, tracks_weights_prev
