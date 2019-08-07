@@ -377,12 +377,7 @@ class Network(object):
       with tf.control_dependencies([rpn_labels]):
         rois, _ = self._proposal_target_layer(rois, roi_scores, "rpn_rois", postfix=postfix)
     else:
-      if cfg.TEST.MODE == 'nms':
-        rois, _ = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois", postfix=postfix)
-      elif cfg.TEST.MODE == 'top':
-        rois, _ = self._proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, "rois")
-      else:
-        raise NotImplementedError
+      rois, _ = self._proposal_layer(rpn_cls_prob, rpn_bbox_pred, "rois", postfix=postfix)
 
     self._predictions["rpn_cls_score" + postfix] = rpn_cls_score
     self._predictions["rpn_cls_score_reshape" + postfix] = rpn_cls_score_reshape
@@ -521,16 +516,46 @@ class Network(object):
                         self._im_info_prev: blobs['im_info'],
                         self._gt_boxes_prev: blobs['gt_boxes']})
 
-    rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, tracks_loss, tracks_targets, tracks_pred, tracks_weights, tracks_weights_prev, _ = sess.run([self._losses["rpn_cross_entropy"],
-                                                                        self._losses['rpn_loss_box'],
-                                                                        self._losses['cross_entropy'],
-                                                                        self._losses['loss_box'],
-                                                                        self._losses['total_loss'],
-                                                                        self._losses['tracks'],
-                                                                        self._predictions['tracks_targets'],
-                                                                        self._predictions['tracks_pred'],
-                                                                        self._proposal_targets['tracks_weights'],
-                                                                        self._proposal_targets['tracks_weights_prev'],
-                                                                        train_op],
-                                                                       feed_dict=feed_dict)
-    return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, tracks_loss, tracks_targets, tracks_pred, tracks_weights, tracks_weights_prev
+    rpn_loss_cls, \
+    rpn_loss_box, \
+    loss_cls, \
+    loss_box, \
+    loss, \
+    tracks_loss, \
+    tracks_targets, \
+    tracks_pred, \
+    tracks_weights, \
+    tracks_weights_prev, \
+    cls_prob, \
+    bbox_pred, \
+    rois, \
+    tracks, _ = sess.run([self._losses["rpn_cross_entropy"],
+                          self._losses['rpn_loss_box'],
+                          self._losses['cross_entropy'],
+                          self._losses['loss_box'],
+                          self._losses['total_loss'],
+                          self._losses['tracks'],
+                          self._predictions['tracks_targets'],
+                          self._predictions['tracks_pred'],
+                          self._proposal_targets['tracks_weights'],
+                          self._proposal_targets['tracks_weights_prev'],
+                          self._predictions['cls_prob'],
+                          self._predictions['bbox_pred'],
+                          self._predictions['rois'],
+                          self._predictions['tracks'],
+                          train_op],
+                          feed_dict=feed_dict)
+    return rpn_loss_cls, \
+           rpn_loss_box, \
+           loss_cls, \
+           loss_box, \
+           loss, \
+           tracks_loss, \
+           tracks_targets, \
+           tracks_pred, \
+           tracks_weights, \
+           tracks_weights_prev, \
+           cls_prob, \
+           bbox_pred, \
+           rois, \
+           tracks

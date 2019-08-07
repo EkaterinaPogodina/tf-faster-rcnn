@@ -10,6 +10,9 @@ from __future__ import print_function
 from model.config import cfg
 import roi_data_layer.roidb as rdl_roidb
 from roi_data_layer.layer import RoIDataLayer
+from model.bbox_transform import clip_boxes, bbox_transform_inv
+from model.nms_wrapper import nms
+
 from utils.timer import Timer
 try:
   import cPickle as pickle
@@ -266,6 +269,7 @@ class SolverWrapper(object):
     next_stepsize = stepsizes.pop()
     prev_blobs = None
     d = {}
+    all_boxes = [[] for _ in range(2)]
     while iter < max_iters + 1:
       # Learning rate
       if iter == next_stepsize + 1:
@@ -277,10 +281,22 @@ class SolverWrapper(object):
 
       timer.tic()
       # Get training data, one batch at a time
-      blobs = self.data_layer.forward()
+      blobs, image_path = self.data_layer.forward()
 
-      rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, tracks_loss, tracks_targets, tracks_pred, tracks_weights, tracks_weights_prev = \
-          self.net.train_step(sess, blobs, train_op, prev_blobs)
+      rpn_loss_cls, \
+      rpn_loss_box, \
+      loss_cls, \
+      loss_box, \
+      total_loss, \
+      tracks_loss, \
+      tracks_targets, \
+      tracks_pred, \
+      tracks_weights, \
+      tracks_weights_prev, \
+      scores, \
+      bbox_pred, \
+      rois, \
+      tracks = self.net.train_step(sess, blobs, train_op, prev_blobs)
 
       timer.toc()
 
@@ -299,6 +315,42 @@ class SolverWrapper(object):
              '{}_tracks_weights'.format(iter): tracks_weights,
              '{}_tracks_weights_prev'.format(iter): tracks_weights_prev,
                })
+
+        im_scales = blobs['im_info'][-1]
+
+        boxes = rois[:, 1:5] / im_scales
+        scores = np.reshape(scores, [scores.shape[0], -1])
+        bbox_pred = np.reshape(bbox_pred, [bbox_pred.shape[0], -1])
+        box_deltas = bbox_pred
+        pred_boxes = bbox_transform_inv(boxes, box_deltas)
+        pred_boxes = _clip_boxes(pred_boxes, im.shape)
+
+        for j in range(1, 3):
+          inds = np.where(scores[:, j] > thresh)[0]
+          cls_scores = scores[inds, j]
+
+          cls_boxes = pred_boxes[inds, j * 4:(j + 1) * 4]
+          cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
+            .astype(np.float32, copy=False)
+          keep = nms(cls_dets, cfg.TEST.NMS)
+          cls_dets = cls_dets[keep, :]
+          all_boxes[j].append(cls_dets)
+
+        # Limit to max_per_image detections *over all classes*
+          image_scores = np.hstack([all_boxes[j][-1][:, -1]
+                                    for j in range(1, 3)])
+          if len(image_scores) > 100:
+            image_thresh = np.sort(image_scores)[-max_per_image]
+            for j in range(1, 3):
+              keep = np.where(all_boxes[j][-1][:, -1] >= image_thresh)[0]
+              all_boxes[j][-1] = all_boxes[j][-1][keep, :]
+
+          if j == 1:
+            d.update({"{}_pedestrian_boxes".format(iter): all_boxes[j][-1]})
+          else:
+            d.update({"{}_car_boxes".format(iter): all_boxes[j][-1]})
+
+        d.update({"{}_image_path".format(iter): image_path})
 
         f = open("tracks.pkl", "wb")
         pickle.dump(d, f)
