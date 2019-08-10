@@ -111,7 +111,7 @@ def im_detect(sess, net, im, prev_blobs=None):
     # Simply repeat the boxes, once for each class
     pred_boxes = np.tile(boxes, (1, scores.shape[1]))
 
-  return scores, pred_boxes, blobs, tracks
+  return scores, pred_boxes, blobs, tracks, boxes, box_deltas
 
 def apply_nms(all_boxes, thresh):
   """Apply non-maximum suppression to all predicted boxes output by the
@@ -156,6 +156,7 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
   output_dir = get_output_dir(imdb, weights_filename)
   # timers
   _t = {'im_detect' : Timer(), 'misc' : Timer()}
+  d = {}
 
   prev_blobs = None
   prev_keep = []
@@ -163,7 +164,13 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
   for i in range(num_images):
     im = cv2.imread(imdb.image_path_at(i))
     _t['im_detect'].tic()
-    scores, boxes, prev_blobs, tracks = im_detect(sess, net, im, prev_blobs)
+    scores, boxes, prev_blobs, tracks, boxes_start, box_deltas = im_detect(sess, net, im, prev_blobs)
+
+    d.update({'_scores:'.format(iter): scores})
+    d.update({'_boxes_start:'.format(iter): boxes_start})
+    d.update({'_box_deltas:'.format(iter): box_deltas})
+    d.update({'_pred_boxes:'.format(iter): boxes})
+
     _t['im_detect'].toc()
     _t['misc'].tic()
 
@@ -225,10 +232,15 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
         .format(i + 1, num_images, _t['im_detect'].average_time,
             _t['misc'].average_time))
 
+  f = open("tracks_test.pkl", "wb")
+  pickle.dump(d, f)
+  f.close()
+
   det_file = os.path.join(output_dir, 'detections.pkl')
   with open(det_file, 'wb') as f:
     pickle.dump(all_boxes, f, pickle.HIGHEST_PROTOCOL)
 
   print('Evaluating detections')
   imdb.evaluate_detections(all_boxes, all_tracks, output_dir)
+
 

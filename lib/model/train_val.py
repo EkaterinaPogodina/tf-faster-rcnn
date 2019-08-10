@@ -28,6 +28,19 @@ import json
 import tensorflow as tf
 from tensorflow.python import pywrap_tensorflow
 
+
+def _clip_boxes(boxes, im_shape):
+  """Clip boxes to image boundaries."""
+  # x1 >= 0
+  boxes[:, 0::4] = np.maximum(boxes[:, 0::4], 0)
+  # y1 >= 0
+  boxes[:, 1::4] = np.maximum(boxes[:, 1::4], 0)
+  # x2 < im_shape[1]
+  boxes[:, 2::4] = np.minimum(boxes[:, 2::4], im_shape[1] - 1)
+  # y2 < im_shape[0]
+  boxes[:, 3::4] = np.minimum(boxes[:, 3::4], im_shape[0] - 1)
+  return boxes
+
 class SolverWrapper(object):
   """
     A wrapper class for the training process
@@ -269,7 +282,7 @@ class SolverWrapper(object):
     next_stepsize = stepsizes.pop()
     prev_blobs = None
     d = {}
-    all_boxes = [[] for _ in range(2)]
+    all_boxes = [[] for _ in range(3)]
     while iter < max_iters + 1:
       # Learning rate
       if iter == next_stepsize + 1:
@@ -317,13 +330,18 @@ class SolverWrapper(object):
                })
 
         im_scales = blobs['im_info'][-1]
+        im_shape = (blobs['im_info'][0], blobs['im_info'][1])
+        #проверить im_scales
 
         boxes = rois[:, 1:5] / im_scales
         scores = np.reshape(scores, [scores.shape[0], -1])
+        d.update({'{}_scores'.format(iter): scores})
         bbox_pred = np.reshape(bbox_pred, [bbox_pred.shape[0], -1])
         box_deltas = bbox_pred
         pred_boxes = bbox_transform_inv(boxes, box_deltas)
-        pred_boxes = _clip_boxes(pred_boxes, im.shape)
+        d.update({'{}_boxes'.format(iter): boxes, '{}_box_deltas'.format(iter): box_deltas,
+                  '{}_pred_boxes'.format(iter): pred_boxes})
+        pred_boxes = _clip_boxes(pred_boxes, im_shape)
 
         for j in range(1, 3):
           inds = np.where(scores[:, j] > thresh)[0]
@@ -337,18 +355,17 @@ class SolverWrapper(object):
           all_boxes[j].append(cls_dets)
 
         # Limit to max_per_image detections *over all classes*
-          image_scores = np.hstack([all_boxes[j][-1][:, -1]
-                                    for j in range(1, 3)])
-          if len(image_scores) > 100:
-            image_thresh = np.sort(image_scores)[-max_per_image]
-            for j in range(1, 3):
-              keep = np.where(all_boxes[j][-1][:, -1] >= image_thresh)[0]
-              all_boxes[j][-1] = all_boxes[j][-1][keep, :]
+        image_scores = np.hstack([all_boxes[j][-1][:, -1]
+                                  for j in range(1, 3)])
+        if len(image_scores) > 100:
+          image_thresh = np.sort(image_scores)[-max_per_image]
+          for j in range(1, 3):
+            keep = np.where(all_boxes[j][-1][:, -1] >= image_thresh)[0]
+            all_boxes[j][-1] = all_boxes[j][-1][keep, :]
 
-          if j == 1:
-            d.update({"{}_pedestrian_boxes".format(iter): all_boxes[j][-1]})
-          else:
-            d.update({"{}_car_boxes".format(iter): all_boxes[j][-1]})
+
+        d.update({"{}_pedestrian_boxes".format(iter): all_boxes[1][-1]})
+        d.update({"{}_car_boxes".format(iter): all_boxes[2][-1]})
 
         d.update({"{}_image_path".format(iter): image_path})
 
