@@ -331,7 +331,6 @@ class SolverWrapper(object):
 
         im_scales = blobs['im_info'][-1]
         im_shape = (blobs['im_info'][0], blobs['im_info'][1])
-        #проверить im_scales
 
         boxes = rois[:, 1:5] / im_scales
         scores = np.reshape(scores, [scores.shape[0], -1])
@@ -344,7 +343,7 @@ class SolverWrapper(object):
         pred_boxes = _clip_boxes(pred_boxes, im_shape)
 
         for j in range(1, 3):
-          inds = np.where(scores[:, j] > thresh)[0]
+          inds = np.where(scores[:, j] > 0.0)[0]
           cls_scores = scores[inds, j]
 
           cls_boxes = pred_boxes[inds, j * 4:(j + 1) * 4]
@@ -358,7 +357,7 @@ class SolverWrapper(object):
         image_scores = np.hstack([all_boxes[j][-1][:, -1]
                                   for j in range(1, 3)])
         if len(image_scores) > 100:
-          image_thresh = np.sort(image_scores)[-max_per_image]
+          image_thresh = np.sort(image_scores)[-100]
           for j in range(1, 3):
             keep = np.where(all_boxes[j][-1][:, -1] >= image_thresh)[0]
             all_boxes[j][-1] = all_boxes[j][-1][keep, :]
