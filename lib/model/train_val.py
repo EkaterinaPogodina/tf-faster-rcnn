@@ -309,6 +309,7 @@ class SolverWrapper(object):
       scores, \
       bbox_pred, \
       rois, \
+      rois_old, \
       tracks = self.net.train_step(sess, blobs, train_op, prev_blobs)
 
       timer.toc()

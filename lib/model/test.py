@@ -166,10 +166,10 @@ def test_net(sess, net, imdb, weights_filename, max_per_image=100, thresh=0.):
     _t['im_detect'].tic()
     scores, boxes, prev_blobs, tracks, boxes_start, box_deltas = im_detect(sess, net, im, prev_blobs)
 
-    d.update({'_scores:'.format(iter): scores})
-    d.update({'_boxes_start:'.format(iter): boxes_start})
-    d.update({'_box_deltas:'.format(iter): box_deltas})
-    d.update({'_pred_boxes:'.format(iter): boxes})
+    d.update({'_scores'.format(i): scores})
+    d.update({'_boxes_start'.format(i): boxes_start})
+    d.update({'_box_deltas'.format(i): box_deltas})
+    d.update({'_pred_boxes'.format(i): boxes})
 
     _t['im_detect'].toc()
     _t['misc'].tic()

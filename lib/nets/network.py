@@ -348,7 +348,8 @@ class Network(object):
       self._losses['tracks'] = tracks_loss
 
       loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box +\
-             cross_entropy2 + loss_box2 + rpn_cross_entropy2 + rpn_loss_box2 + tracks_loss
+             cross_entropy2 + loss_box2 + rpn_cross_entropy2 + rpn_loss_box2
+             # + tracks_loss
 
       regularization_loss = tf.add_n(tf.losses.get_regularization_losses(), 'regu')
       self._losses['total_loss'] = loss + regularization_loss
@@ -530,6 +531,7 @@ class Network(object):
     cls_prob, \
     bbox_pred, \
     rois, \
+    rois_old,\
     tracks, _ = sess.run([self._losses["rpn_cross_entropy"],
                           self._losses['rpn_loss_box'],
                           self._losses['cross_entropy'],
@@ -542,6 +544,7 @@ class Network(object):
                           self._proposal_targets['tracks_weights_prev'],
                           self._predictions['cls_prob'],
                           self._predictions['bbox_pred'],
+                          self._predictions['rois'],
                           self._predictions['rois_old'],
                           self._predictions['tracks'],
                           train_op],
@@ -559,4 +562,5 @@ class Network(object):
            cls_prob, \
            bbox_pred, \
            rois, \
+           rois_old, \
            tracks
