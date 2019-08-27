@@ -323,55 +323,57 @@ class SolverWrapper(object):
               (iter, max_iters, total_loss, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
         print('speed: {:.3f}s / iter'.format(timer.average_time))
 
-      if iter % 100 == 0:
-        d.update({'{}_tracks_targets'.format(iter): tracks_targets,
-             '{}_tracks_pred'.format(iter): tracks_pred,
-             '{}_tracks_weights'.format(iter): tracks_weights,
-             '{}_tracks_weights_prev'.format(iter): tracks_weights_prev,
-               })
-
-        im_scales = blobs['im_info'][-1]
-        im_shape = (blobs['im_info'][0], blobs['im_info'][1])
-
-        boxes = rois[:, 1:5] / im_scales
-        scores = np.reshape(scores, [scores.shape[0], -1])
-        d.update({'{}_scores'.format(iter): scores})
-        bbox_pred = np.reshape(bbox_pred, [bbox_pred.shape[0], -1])
-        box_deltas = bbox_pred
-        pred_boxes = bbox_transform_inv(boxes, box_deltas)
-        d.update({'{}_boxes'.format(iter): boxes, '{}_box_deltas'.format(iter): box_deltas,
-                  '{}_pred_boxes'.format(iter): pred_boxes})
-        pred_boxes = _clip_boxes(pred_boxes, im_shape)
-
-        for j in range(1, 3):
-          inds = np.where(scores[:, j] > 0.0)[0]
-          cls_scores = scores[inds, j]
-
-          cls_boxes = pred_boxes[inds, j * 4:(j + 1) * 4]
-          cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
-            .astype(np.float32, copy=False)
-          keep = nms(cls_dets, cfg.TEST.NMS)
-          cls_dets = cls_dets[keep, :]
-          all_boxes[j].append(cls_dets)
-
-        # Limit to max_per_image detections *over all classes*
-        image_scores = np.hstack([all_boxes[j][-1][:, -1]
-                                  for j in range(1, 3)])
-        if len(image_scores) > 100:
-          image_thresh = np.sort(image_scores)[-100]
-          for j in range(1, 3):
-            keep = np.where(all_boxes[j][-1][:, -1] >= image_thresh)[0]
-            all_boxes[j][-1] = all_boxes[j][-1][keep, :]
-
-
-        d.update({"{}_pedestrian_boxes".format(iter): all_boxes[1][-1]})
-        d.update({"{}_car_boxes".format(iter): all_boxes[2][-1]})
-
-        d.update({"{}_image_path".format(iter): image_path})
-
-        f = open("tracks.pkl", "wb")
-        pickle.dump(d, f)
-        f.close()
+      # if iter % 100 == 0:
+      #   d.update({'{}_tracks_targets'.format(iter): tracks_targets,
+      #        '{}_tracks_pred'.format(iter): tracks_pred,
+      #        '{}_tracks_weights'.format(iter): tracks_weights,
+      #        '{}_tracks_weights_prev'.format(iter): tracks_weights_prev,
+      #          })
+      #
+      #   im_scales = blobs['im_info'][-1]
+      #   # im_shape = (blobs['im_info'][0], blobs['im_info'][1])
+      #   im_shape = 600, 800
+      #
+      #   boxes = rois[:, 1:5] / im_scales
+      #   scores = np.reshape(scores, [scores.shape[0], -1])
+      #   d.update({'{}_scores'.format(iter): scores})
+      #   bbox_pred = np.reshape(bbox_pred, [bbox_pred.shape[0], -1])
+      #   box_deltas = bbox_pred
+      #   pred_boxes = bbox_transform_inv(boxes, box_deltas)
+      #   pred_boxes = _clip_boxes(pred_boxes, im_shape)
+      #
+      #   d.update({'{}_boxes'.format(iter): boxes, '{}_box_deltas'.format(iter): box_deltas,
+      #             '{}_pred_boxes'.format(iter): pred_boxes})
+      #
+      #   for j in range(1, 3):
+      #     inds = np.where(scores[:, j] > 0.0)[0]
+      #     cls_scores = scores[inds, j]
+      #
+      #     cls_boxes = pred_boxes[inds, j * 4:(j + 1) * 4]
+      #     cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
+      #       .astype(np.float32, copy=False)
+      #     keep = nms(cls_dets, cfg.TEST.NMS)
+      #     cls_dets = cls_dets[keep, :]
+      #     all_boxes[j].append(cls_dets)
+      #
+      #   # Limit to max_per_image detections *over all classes*
+      #   image_scores = np.hstack([all_boxes[j][-1][:, -1]
+      #                             for j in range(1, 3)])
+      #   if len(image_scores) > 100:
+      #     image_thresh = np.sort(image_scores)[-100]
+      #     for j in range(1, 3):
+      #       keep = np.where(all_boxes[j][-1][:, -1] >= image_thresh)[0]
+      #       all_boxes[j][-1] = all_boxes[j][-1][keep, :]
+      #
+      #
+      #   d.update({"{}_pedestrian_boxes".format(iter): all_boxes[1][-1]})
+      #   d.update({"{}_car_boxes".format(iter): all_boxes[2][-1]})
+      #
+      #   d.update({"{}_image_path".format(iter): image_path})
+      #
+      #   f = open("tracks.pkl", "wb")
+      #   pickle.dump(d, f)
+      #   f.close()
 
       # Snapshotting
       if iter % cfg.TRAIN.SNAPSHOT_ITERS == 0:

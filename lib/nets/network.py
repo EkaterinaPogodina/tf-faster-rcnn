@@ -312,7 +312,8 @@ class Network(object):
     op_targets = tf.cast(tf.equal(tracks_targets, 0), dtype=tf.float32)
 
     loss = - tf.multiply(tracks_pred, tracks_targets) + tf.multiply(tracks_pred, op_targets)
-    loss = tf.reduce_sum(tf.multiply(loss, weights_all))
+    #loss = tf.reduce_sum(tf.multiply(loss, weights_all))
+    loss = tf.reduce_sum(loss)
     #loss += tf.reduce_sum(tf.abs(tf.multiply(tracks_pred, weights_all)))
 
     # loss = tf.reduce_sum(tf.multiply(tf.abs(tracks_targets - tracks_pred), weights_all))
@@ -348,8 +349,7 @@ class Network(object):
       self._losses['tracks'] = tracks_loss
 
       loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box +\
-             cross_entropy2 + loss_box2 + rpn_cross_entropy2 + rpn_loss_box2
-             # + tracks_loss
+             cross_entropy2 + loss_box2 + rpn_cross_entropy2 + rpn_loss_box2 + tracks_loss
 
       regularization_loss = tf.add_n(tf.losses.get_regularization_losses(), 'regu')
       self._losses['total_loss'] = loss + regularization_loss
