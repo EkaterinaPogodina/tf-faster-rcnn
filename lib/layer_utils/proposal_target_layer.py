@@ -104,10 +104,22 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_ima
     np.ascontiguousarray(all_rois[:, 1:5], dtype=np.float),
     np.ascontiguousarray(gt_boxes[:, :4], dtype=np.float))
   gt_assignment = overlaps.argmax(axis=1)
+  #print(overlaps.shape, gt_boxes[:, :4].shape, all_rois[:, 1:5].shape)
   max_overlaps = overlaps.max(axis=1)
 
+  #for i, id_ in enumerate(gt_assignment):
+  #  #print(len(gt_boxes[0]), len(gt_boxes[:, 4]))
+  #  if gt_boxes[id_][4] > 0:
+  #    print("rois", all_rois[i][1:5])
+  #    print(gt_boxes[id_][:4])
+  #    break
+  
   labels = gt_boxes[gt_assignment, 4]
   tracks = gt_boxes[gt_assignment, 5]
+  #print(tracks)
+  #print(all_rois)
+  #print("boxes", gt_boxes[:, 5])
+  #print("gt", gt_boxes[:, :4])
 
   # Select foreground RoIs as those with >= FG_THRESH overlap
   fg_inds = np.where(max_overlaps >= cfg.TRAIN.FG_THRESH)[0]
@@ -142,8 +154,8 @@ def _sample_rois(all_rois, all_scores, gt_boxes, fg_rois_per_image, rois_per_ima
   tracks = tracks[keep_inds]
   # Clamp labels for the background RoIs to 0 and track ids to -1
   labels[int(fg_rois_per_image):] = 0
-  #tracks[int(fg_rois_per_image):] = -1
-  tracks_weights = (tracks != 0).astype(np.int32)
+  tracks[int(fg_rois_per_image):] = -1
+  tracks_weights = (tracks != -1).astype(np.int32)
   rois = all_rois[keep_inds]
   roi_scores = all_scores[keep_inds]
 

@@ -55,7 +55,7 @@ class RoIDataLayer(object):
       inds = np.reshape(inds[row_perm, :], (-1,))
       self._perm = inds
     else:
-      self._perm = np.random.permutation(np.arange(len(self._roidb)))
+      self._perm = list(np.arange(len(self._roidb)))
     # Restore the random state
     if self._random:
       np.random.set_state(st0)
