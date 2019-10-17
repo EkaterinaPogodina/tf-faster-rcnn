@@ -240,7 +240,9 @@ class Network(object):
       cls_prob2, bbox_pred2 = self._region_classification(fc7_2, is_training,
                                                         initializer, initializer_bbox, postfix='_prev')
 
-    tracks_pred = slim.fully_connected(tf.concat([fc7, fc7_2], axis=1), num_outputs=cfg.TRAIN.BATCH_SIZE)
+    #tracks_pred = slim.fully_connected(tf.concat([fc7, fc7_2], axis=1), activation_fn=None, weights_initializer=initializer, num_outputs=cfg.TRAIN.BATCH_SIZE)
+    tracks_pred = slim.fully_connected(tf.concat([fc7, fc7_2], axis=1), weights_initializer=initializer, activation_fn=tf.nn.relu, num_outputs=128)
+    tracks_pred = slim.fully_connected(tracks_pred, activation_fn=None, num_outputs=cfg.TRAIN.BATCH_SIZE)
     self._predictions['tracks'] = tracks_pred
 
     return rois, rois2, cls_prob, bbox_pred
@@ -291,27 +293,43 @@ class Network(object):
     return self._smooth_l1_loss(bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights)
 
   def _get_rcnn_tracks_loss(self):
-    #tracks = tf.tile(tf.reshape(self._proposal_targets['tracks'], [cfg.TRAIN.BATCH_SIZE, 1]), [1, cfg.TRAIN.BATCH_SIZE])
-    #prev_tracks = tf.transpose(tf.tile(tf.reshape(self._proposal_targets['tracks_prev'], [cfg.TRAIN.BATCH_SIZE, 1]), [1, cfg.TRAIN.BATCH_SIZE]))
     tracks = tf.reshape(self._proposal_targets['tracks'], [cfg.TRAIN.BATCH_SIZE, 1])
     prev_tracks = tf.reshape(self._proposal_targets['tracks_prev'], [1, cfg.TRAIN.BATCH_SIZE])
-    tracks_targets = tf.equal(tracks, prev_tracks)
+    tracks_targets = tf.cast(tf.equal(tracks, prev_tracks), dtype=tf.float32)
+    #self._predictions['weights_all'] = tracks_targets
+    t1 = tf.subtract(tracks_targets, tf.constant(0.5))
+    tracks_targets = tf.multiply(t1, tf.constant(2.0))
     tracks_pred = self._predictions['tracks']
 
     weights = tf.reshape(self._proposal_targets['tracks_weights'], [cfg.TRAIN.BATCH_SIZE, 1])
     weights_prev = tf.reshape(self._proposal_targets['tracks_weights_prev'], [1, cfg.TRAIN.BATCH_SIZE])
 
     weights_all = tf.cast(tf.matmul(weights, weights_prev), tf.float32)
+    rev = tf.ones(weights_all.shape) - weights_all
+    rev = tf.multiply(rev, tf.constant(0.004))
+    #weights_all2 = (tf.ones(weights_all.shape) - weights_all) / (weights_all.shape[0] -  tf.reduce_sum(weights_all))
+    #weigts_all = tf.truediv(weights_all, tf.reduce_sum(weights_all)) #+ weights_all2
+    weights_all = tf.multiply(weights_all, tf.constant(0.1)) + rev 
+    
+    self._predictions['weights_all'] = weights_all
 
     # self._predictions['real_tracks'] = tracks
     # self._predictions['real_tracks_prev'] = prev_tracks
     self._predictions['tracks_targets'] = tf.cast(tracks_targets, dtype=tf.float32)
-    tracks_pred = tf.clip_by_value(tracks_pred, 0, 1)
-    tracks_pred = tf.cast(tf.math.greater(tracks_pred, 0.5), dtype=tf.int32)
+    tracks_pred = tf.clip_by_value(tracks_pred, -1, 1)
+    #tracks_pred = tf.cast(tf.math.greater(tracks_pred, 0.5), dtype=tf.int32)
     self._predictions['tracks_pred'] = tracks_pred
 
-    tracks_targets = tf.cast(tracks_targets, dtype=tf.int32)
+    #tracks_targets = tf.cast(tracks_targets, dtype=tf.int32)
     #op_targets = tf.cast(tf.equal(tracks_targets, 0), dtype=tf.float32)
+
+    loss = tf.log(tf.add(tf.constant(1.0), tf.exp(-tf.multiply(tracks_pred, tracks_targets))))
+    loss = tf.multiply(loss, weights_all) / 10 
+    #self._predictions['weights_all'] = loss
+    loss = tf.reduce_sum(loss)
+    #loss = -tf.multiply(tracks_pred, tracks_targets)
+    #loss = tf.reduce_sum(tf.multiply(loss, weights_all))
+    #loss = tf.reduce_sum(loss) / 1000
 
     #loss = - tf.multiply(tracks_pred, tracks_targets) + tf.multiply(tracks_pred, op_targets)
     #loss = tf.reduce_sum(tf.multiply(loss, weights_all))
@@ -320,8 +338,9 @@ class Network(object):
 
     #loss = tf.reduce_sum(tf.multiply(tf.abs(tracks_targets - tracks_pred), weights_all))
     #loss = tf.reduce_sum(tf.abs(tracks_targets - tracks_pred))
-    test = tf.cast(tf.equal(tracks_targets, tracks_pred), dtype=tf.float32)
-    loss = tf.reduce_sum(tf.multiply(test, tf.cast(tracks_targets, dtype=tf.float32)))
+    #test = tf.cast(tf.equal(tracks_targets, tracks_pred), dtype=tf.float32)
+    #loss = - tf.math.log(tf.reduce_sum(tf.multiply(test, weights_all)))
+    #loss = tf.log(tf.reduce_sum(test))
     #loss = tf.reduce_sum(tf.multiply(test, weights_all))
     #loss = loss / tf.reduce_sum(tf.multiply(tf.cast(tracks_targets, dtype=tf.float32), weights_all))
 
@@ -539,7 +558,7 @@ class Network(object):
     bbox_pred, \
     rois, \
     rois_prev,\
-    tracks, tracks_real, tracks_real_prev, _ = sess.run([self._losses["rpn_cross_entropy"],
+    tracks, tracks_real, tracks_real_prev, weights_all, cls_prob_prev, _ = sess.run([self._losses["rpn_cross_entropy"],
                           self._losses['rpn_loss_box'],
                           self._losses['cross_entropy'],
                           self._losses['loss_box'],
@@ -556,6 +575,8 @@ class Network(object):
                           self._predictions['tracks'],
                           self._proposal_targets['tracks'],
                           self._proposal_targets['tracks_prev'],
+                          self._predictions['weights_all'],
+                          self._predictions['cls_prob_prev'],
                           train_op],
                           feed_dict=feed_dict)
     return rpn_loss_cls, \
@@ -572,4 +593,4 @@ class Network(object):
            bbox_pred, \
            rois, \
            rois_prev, \
-           tracks, tracks_real, tracks_real_prev
+           tracks, tracks_real, tracks_real_prev, weights_all, cls_prob_prev

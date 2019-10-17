@@ -155,6 +155,7 @@ class stanford(imdb):
     tracks = np.zeros((num_objs), dtype=np.int32)
 
     # Load object bounding boxes into a data frame.
+    #print("start!")
     for ix, obj in enumerate(objs):
       bbox = obj.find('bndbox')
       # Make pixel indexes 0-based
@@ -163,6 +164,7 @@ class stanford(imdb):
       x2 = float(bbox.find('xmax').text)
       y2 = float(bbox.find('ymax').text)
       track_id = int(bbox.find('track_id').text)
+      #print(track_id)
       cls = self._class_to_ind[obj.find('name').text.lower().strip()]
       boxes[ix, :] = [x1, y1, x2, y2]
       tracks[ix] = track_id

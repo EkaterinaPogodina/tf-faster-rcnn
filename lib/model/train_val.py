@@ -312,23 +312,26 @@ class SolverWrapper(object):
       bbox_pred, \
       rois, \
       rois_prev, \
-      tracks, tracks_real, tracks_real_prev = self.net.train_step(sess, blobs, train_op, prev_blobs)
+      tracks, tracks_real, tracks_real_prev, weights_all, scores_prev = self.net.train_step(sess, blobs, train_op, prev_blobs)
 
       timer.toc()
+      d.update({'{}_loss'.format(iter): tracks_loss})
 
       prev_blobs = blobs
       #print(image_path)
       # Display training information
-      if iter % 100 == 0:
+      if iter % 50 == 0:
         print('iter: %d / %d, total loss: %.6f\n >>> rpn_loss_cls: %.6f\n '
               '>>> rpn_loss_box: %.6f\n >>> loss_cls: %.6f\n >>> loss_box: %.6f\n >>>  lr: %f' % \
               (iter, max_iters, total_loss, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
         print('speed: {:.3f}s / iter'.format(timer.average_time))
+        print('tracks:', tracks_loss)
 
-      if iter % 1000 == 0:
+      if iter % 1 == 0:
         d.update({'{}_tracks_targets'.format(iter): tracks_targets,
              '{}_tracks_pred'.format(iter): tracks_pred,
              '{}_tracks_weights'.format(iter): tracks_weights,
+             '{}_weights_all'.format(iter): weights_all,
              '{}_tracks_weights_prev'.format(iter): tracks_weights_prev,
              '{}_tracks_real'.format(iter): tracks_real,
              '{}_tracks_real_prev'.format(iter): tracks_real_prev,
@@ -342,7 +345,9 @@ class SolverWrapper(object):
         boxes_prev = rois_prev[:, 1:5] / im_scales
         #print(im_scales)
         scores = np.reshape(scores, [scores.shape[0], -1])
+        scores_prev = np.reshape(scores_prev, [scores_prev.shape[0], -1])
         d.update({'{}_scores'.format(iter): scores})
+        d.update({'{}_scores_prev'.format(iter): scores_prev})
         #bbox_pred = np.reshape(bbox_pred, [bbox_pred.shape[0], -1])
         #box_deltas = bbox_pred
         #pred_boxes = bbox_transform_inv(boxes, box_deltas)
@@ -379,13 +384,14 @@ class SolverWrapper(object):
         d.update({"{}_car_boxes".format(iter): all_boxes[2][-1]})
      
         d.update({"{}_image_path".format(iter): image_path})
-     
+        
+        #print("Tracks!") 
         f = open("tracks.pkl", "wb")
         pickle.dump(d, f)
         f.close()
 
       # Snapshotting
-      if iter % cfg.TRAIN.SNAPSHOT_ITERS == 0:
+      if iter % 1000 == 0:
         last_snapshot_iter = iter
         ss_path, np_path = self.snapshot(sess, iter)
         np_paths.append(np_path)
